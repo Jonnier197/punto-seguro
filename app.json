@@ -1,42 +1,33 @@
 {
   "expo": {
-    "name": "PuntoSeguro",
-    "slug": "PuntoSeguro",
+    "name": "Punto Seguro",
+    "slug": "punto-seguro",
+    "scheme": "punto-seguro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "puntoseguro",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.jonnier197.puntoseguro"
     },
     "plugins": [
-      "expo-router",
       [
-        "expo-splash-screen",
+        "expo-location",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "locationAlwaysAndWhenInUsePermission": "Permitir a Punto Seguro acceder a tu ubicación."
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+    "extra": {
+      "eas": {
+        "projectId": "038943dc-e77b-4876-a2d4-dcb403865eab"
+      }
     }
   }
 }
