@@ -1,163 +1,578 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
-import { WebView } from 'react-native-webview';
-import * as Location from 'expo-location';
+import { useEffect, useState } from 'react';
+
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import {
+  addDoc,
+  collection,
+  getDocs,
+} from 'firebase/firestore';
+
+import { db } from '../../config/firebase';
+
+interface PuntoSeguro {
+  id: string;
+  nombre: string;
+  tipo: string;
+  direccion: string;
+  latitud: number;
+  longitud: number;
+  telefono: string;
+}
+
+// ============================================
+// DATOS INICIALES
+// ============================================
+
+const puntosIniciales = [
+  {
+    nombre: 'Estación de Policía Principal',
+    tipo: 'Policía',
+    direccion: 'Calle 10 # 4-20',
+    latitud: 3.4516,
+    longitud: -76.5320,
+    telefono: '123',
+  },
+  {
+    nombre: 'Hospital Universitario del Valle',
+    tipo: 'Hospital',
+    direccion: 'Calle 5 # 36-08',
+    latitud: 3.4285,
+    longitud: -76.5442,
+    telefono: '125',
+  },
+  {
+    nombre: 'Estación de Bomberos Central',
+    tipo: 'Bomberos',
+    direccion: 'Carrera 1 # 18-29',
+    latitud: 3.4550,
+    longitud: -76.5270,
+    telefono: '119',
+  },
+];
+
+// ============================================
+// PANTALLA MAPA
+// ============================================
 
 export default function MapaScreen() {
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [mensaje, setMensaje] = useState('Obteniendo tu ubicación...');
+  const [puntos, setPuntos] = useState<PuntoSeguro[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const obtenerUbicacion = async () => {
-    setCargando(true);
+  // ==========================================
+  // CARGAR PUNTOS DESDE FIRESTORE
+  // ==========================================
+
+  const fetchPuntosSeguros = async () => {
+    setLoading(true);
+
     try {
-      // 1. Verificar/Solicitar permisos de manera explícita
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permiso denegado',
-          'Por favor concede permisos de ubicación en los ajustes de tu teléfono para ver tu posición en el mapa.'
-        );
-        setMensaje('Ubicación predeterminada (Sin GPS)');
-        // Coordenadas de respaldo (Palmira / Cali)
-        setLocation({ latitude: 3.5394, longitude: -76.3036 });
-        setCargando(false);
-        return;
-      }
+      const querySnapshot = await getDocs(
+        collection(db, 'puntos_seguros')
+      );
 
-      // 2. Obtener posición GPS con alta precisión
-      let currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+      const listaPuntos: PuntoSeguro[] = [];
+
+      querySnapshot.forEach((documento) => {
+        listaPuntos.push({
+          id: documento.id,
+          ...documento.data(),
+        } as PuntoSeguro);
       });
 
-      setLocation({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
-      setMensaje('Ubicación en tiempo real activa');
+      setPuntos(listaPuntos);
+
     } catch (error) {
-      console.log('Error obteniendo ubicación:', error);
-      setMensaje('Ubicación predeterminada (Error GPS)');
-      setLocation({ latitude: 3.5394, longitude: -76.3036 });
+      console.error(
+        'Error cargando puntos seguros:',
+        error
+      );
+
+      Alert.alert(
+        'Error',
+        'No se pudieron cargar los puntos seguros.'
+      );
+
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
+  // ==========================================
+  // CREAR PUNTOS AUTOMÁTICAMENTE
+  // ==========================================
+
+  const crearPuntosAutomaticos = async () => {
+    setLoading(true);
+
+    try {
+      for (const punto of puntosIniciales) {
+        await addDoc(
+          collection(db, 'puntos_seguros'),
+          punto
+        );
+      }
+
+      Alert.alert(
+        '¡Éxito!',
+        'Se han creado los puntos seguros automáticamente en Firestore.'
+      );
+
+      await fetchPuntosSeguros();
+
+    } catch (error) {
+      console.error(
+        'Error creando puntos:',
+        error
+      );
+
+      Alert.alert(
+        'Error',
+        'No se pudieron crear los puntos automáticamente.'
+      );
+
+      setLoading(false);
+    }
+  };
+
+  // ==========================================
+  // CARGAR AL INICIAR
+  // ==========================================
+
   useEffect(() => {
-    obtenerUbicacion();
+    fetchPuntosSeguros();
   }, []);
 
-  if (cargando || !location) {
+  // ==========================================
+  // EMOJI SEGÚN TIPO
+  // ==========================================
+
+  const getEmojiTipo = (tipo: string) => {
+    const t = tipo.toLowerCase();
+
+    if (
+      t.includes('policía') ||
+      t.includes('policia')
+    ) {
+      return '👮‍♂️';
+    }
+
+    if (
+      t.includes('hospital') ||
+      t.includes('salud') ||
+      t.includes('clínica') ||
+      t.includes('clinica')
+    ) {
+      return '🏥';
+    }
+
+    if (t.includes('bombero')) {
+      return '👨‍🚒';
+    }
+
+    return '🛡️';
+  };
+
+  // ==========================================
+  // PANTALLA DE CARGA
+  // ==========================================
+
+  if (loading) {
     return (
-      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Conectando con el GPS...</Text>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+
+        <ActivityIndicator
+          size="large"
+          color="#EF4444"
+        />
+
+        <Text style={styles.loadingText}>
+          Cargando Puntos Seguros...
+        </Text>
+
+      </View>
     );
   }
 
-  const mapHtml = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <style>
-          body, html { margin: 0; padding: 0; height: 100%; width: 100%; }
-          #map { height: 100%; width: 100%; }
-          .user-marker {
-            background-color: #EF4444;
-            border: 3px solid #FFFFFF;
-            border-radius: 50%;
-            box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
-          }
-        </style>
-      </head>
-      <body>
-        <div id="map"></div>
-        <script>
-          var userLat = ${location.latitude};
-          var userLng = ${location.longitude};
-
-          var map = L.map('map', { zoomControl: false }).setView([userLat, userLng], 15);
-
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-          }).addTo(map);
-
-          // Marcador de Ubicación del Usuario
-          var userIcon = L.divIcon({
-            className: 'user-marker',
-            iconSize: [22, 22],
-            iconAnchor: [11, 11]
-          });
-
-          L.marker([userLat, userLng], { icon: userIcon }).addTo(map)
-            .bindPopup('<b>¡Tú estás aquí!</b><br>Ubicación actual')
-            .openPopup();
-
-          // Puntos de auxilio simulados alrededor de tu posición GPS
-          L.marker([userLat + 0.003, userLng + 0.002]).addTo(map).bindPopup('<b>💧 Punto Agua Potable</b>');
-          L.marker([userLat - 0.002, userLng - 0.003]).addTo(map).bindPopup('<b>🚨 Primeros Auxilios</b>');
-          L.marker([userLat + 0.001, userLng - 0.004]).addTo(map).bindPopup('<b>🏠 Refugio Temporal</b>');
-        </script>
-      </body>
-    </html>
-  `;
+  // ==========================================
+  // PANTALLA PRINCIPAL
+  // ==========================================
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Encabezado */}
+
+      {/* ENCABEZADO */}
+
       <View style={styles.header}>
-        <Text style={styles.title}>Navegación de Mapa</Text>
-        <Text style={styles.subtitle}>{mensaje}</Text>
+
+        <Text style={styles.headerTitle}>
+          Puntos Seguros Cercanos 🗺️
+        </Text>
+
+        <Text style={styles.headerSubtitle}>
+          Ubicaciones de asistencia inmediata
+        </Text>
+
       </View>
 
-      {/* Mapa */}
-      <View style={styles.mapContainer}>
-        <WebView 
-          originWhitelist={['*']}
-          source={{ html: mapHtml }}
-          style={styles.map}
-        />
+      <View style={styles.content}>
 
-        {/* Botón de Recargar Ubicación */}
-        <TouchableOpacity style={styles.recenterButton} onPress={obtenerUbicacion}>
-          <Text style={{ fontSize: 20 }}>🎯</Text>
-        </TouchableOpacity>
+        {/* SIN PUNTOS */}
 
-        {/* Filtros flotantes */}
-        <View style={styles.floatingFilters}>
-          <TouchableOpacity style={[styles.filterChip, { backgroundColor: '#EF4444' }]}>
-            <Text style={styles.chipText}>🚨 Auxilio</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.filterChip, { backgroundColor: '#3B82F6' }]}>
-            <Text style={styles.chipText}>💧 Agua</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.filterChip, { backgroundColor: '#F59E0B' }]}>
-            <Text style={styles.chipText}>🏠 Refugio</Text>
-          </TouchableOpacity>
-        </View>
+        {puntos.length === 0 ? (
+
+          <View style={styles.emptyContainer}>
+
+            <Text style={styles.emptyEmoji}>
+              📍
+            </Text>
+
+            <Text style={styles.emptyText}>
+              No hay puntos seguros registrados
+              {'\n'}
+              en Firestore.
+            </Text>
+
+            {/* CREAR PUNTOS */}
+
+            <TouchableOpacity
+              style={styles.autoButton}
+              onPress={crearPuntosAutomaticos}
+            >
+              <Text style={styles.autoButtonText}>
+                ⚡ Crear Puntos Automáticamente
+              </Text>
+            </TouchableOpacity>
+
+            {/* RECARGAR */}
+
+            <TouchableOpacity
+              style={styles.reloadButton}
+              onPress={fetchPuntosSeguros}
+            >
+              <Text style={styles.reloadButtonText}>
+                🔄 Recargar
+              </Text>
+            </TouchableOpacity>
+
+          </View>
+
+        ) : (
+
+          /* LISTA DE PUNTOS */
+
+          <FlatList
+            data={puntos}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+
+            renderItem={({ item }) => (
+
+              <View style={styles.card}>
+
+                {/* ENCABEZADO DE LA TARJETA */}
+
+                <View style={styles.cardHeader}>
+
+                  <Text style={styles.typeEmoji}>
+                    {getEmojiTipo(item.tipo)}
+                  </Text>
+
+                  <View style={styles.cardTitleContainer}>
+
+                    <Text style={styles.pointName}>
+                      {item.nombre}
+                    </Text>
+
+                    <Text style={styles.pointType}>
+                      {item.tipo}
+                    </Text>
+
+                  </View>
+
+                </View>
+
+                <View style={styles.divider} />
+
+                {/* DIRECCIÓN */}
+
+                <View style={styles.infoRow}>
+
+                  <Text style={styles.infoLabel}>
+                    📍 Dirección:
+                  </Text>
+
+                  <Text style={styles.infoValue}>
+                    {item.direccion}
+                  </Text>
+
+                </View>
+
+                {/* TELÉFONO */}
+
+                <View style={styles.infoRow}>
+
+                  <Text style={styles.infoLabel}>
+                    📞 Contacto:
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      styles.phoneText,
+                    ]}
+                  >
+                    {item.telefono ||
+                      'Sin teléfono'}
+                  </Text>
+
+                </View>
+
+                {/* COORDENADAS */}
+
+                <View style={styles.coordsBadge}>
+
+                  <Text style={styles.coordsText}>
+                    Lat: {item.latitud} | Lon:{' '}
+                    {item.longitud}
+                  </Text>
+
+                </View>
+
+              </View>
+
+            )}
+          />
+
+        )}
+
       </View>
+
     </SafeAreaView>
   );
 }
 
+// ============================================
+// ESTILOS
+// ============================================
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F7FA', paddingTop: 30 },
-  loadingContainer: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 10, color: '#64748B', fontSize: 14 },
-  header: { alignItems: 'center', paddingVertical: 10, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#0F172A' },
-  subtitle: { fontSize: 12, color: '#64748B' },
-  mapContainer: { flex: 1, position: 'relative' },
-  map: { flex: 1 },
-  recenterButton: { position: 'absolute', bottom: 25, right: 15, backgroundColor: '#FFF', width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', elevation: 5 },
-  floatingFilters: { position: 'absolute', top: 15, left: 10, right: 10, flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, elevation: 3 },
-  chipText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    paddingTop: 30,
+  },
+
+  header: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0F172A',
+  },
+
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 3,
+  },
+
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+
+  // ==========================================
+  // CARGANDO
+  // ==========================================
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+
+  loadingText: {
+    marginTop: 10,
+    color: '#64748B',
+    fontSize: 14,
+  },
+
+  // ==========================================
+  // TARJETA
+  // ==========================================
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+
+    elevation: 2,
+  },
+
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+
+  typeEmoji: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+
+  cardTitleContainer: {
+    flex: 1,
+  },
+
+  pointName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0F172A',
+  },
+
+  pointType: {
+    fontSize: 12,
+    color: '#EF4444',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 8,
+  },
+
+  // ==========================================
+  // INFORMACIÓN
+  // ==========================================
+
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginVertical: 4,
+    gap: 10,
+  },
+
+  infoLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: '#64748B',
+  },
+
+  infoValue: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
+    textAlign: 'right',
+  },
+
+  phoneText: {
+    color: '#007AFF',
+    fontWeight: 'bold',
+  },
+
+  // ==========================================
+  // COORDENADAS
+  // ==========================================
+
+  coordsBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+
+  coordsText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontFamily:
+      Platform.OS === 'ios'
+        ? 'Courier'
+        : 'monospace',
+  },
+
+  // ==========================================
+  // SIN RESULTADOS
+  // ==========================================
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
+
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 10,
+  },
+
+  emptyText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+
+  // ==========================================
+  // BOTÓN AUTOMÁTICO
+  // ==========================================
+
+  autoButton: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+
+  autoButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+
+  // ==========================================
+  // BOTÓN RECARGAR
+  // ==========================================
+
+  reloadButton: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+
+  reloadButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+
 });
