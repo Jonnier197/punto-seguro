@@ -1,17 +1,9 @@
 import { Tabs, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 
-import {
-  onAuthStateChanged,
-  User,
-} from 'firebase/auth';
-
-import { auth } from '../../config/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '../../config/firebase'; // ajusta si tu config está en otra ruta
 
 export default function Layout() {
   const [user, setUser] = useState<User | null>(null);
@@ -20,36 +12,31 @@ export default function Layout() {
   const router = useRouter();
   const segments = useSegments();
 
-  // Verificar el estado de autenticación
-  useEffect(() => {
-    const subscriber = onAuthStateChanged(
-      auth,
-      (userState) => {
-        setUser(userState);
-        setInitializing(false);
-      }
-    );
+  // Evita que el efecto de redirección se dispare más de una vez
+  const yaRedirigio = useRef(false);
 
-    // Cancelar el listener cuando se desmonte
+  useEffect(() => {
+    const subscriber = onAuthStateChanged(auth, (userState) => {
+      setUser(userState);
+      setInitializing(false);
+    });
     return subscriber;
   }, []);
 
-  // Proteger las rutas
   useEffect(() => {
     if (initializing) return;
 
     const inAuthGroup = segments[0] === 'auth';
 
-    if (!user && !inAuthGroup) {
-      // Si no está autenticado, enviarlo al login
+    if (!user && !inAuthGroup && !yaRedirigio.current) {
+      yaRedirigio.current = true;
       router.replace('/auth');
-    } else if (user && inAuthGroup) {
-      // Si ya está autenticado, enviarlo al inicio
+    } else if (user && inAuthGroup && !yaRedirigio.current) {
+      yaRedirigio.current = true;
       router.replace('/');
     }
   }, [user, initializing, segments]);
 
-  // Pantalla de carga mientras Firebase verifica la sesión
   if (initializing) {
     return (
       <View
@@ -60,25 +47,14 @@ export default function Layout() {
           backgroundColor: '#0F172A',
         }}
       >
-        <ActivityIndicator
-          size="large"
-          color="#EF4444"
-        />
-
-        <Text
-          style={{
-            marginTop: 15,
-            color: '#FFFFFF',
-            fontSize: 16,
-          }}
-        >
+        <ActivityIndicator size="large" color="#EF4444" />
+        <Text style={{ marginTop: 15, color: '#FFFFFF', fontSize: 16 }}>
           Cargando...
         </Text>
       </View>
     );
   }
 
-  // Navegación principal
   return (
     <Tabs
       screenOptions={{
@@ -91,52 +67,31 @@ export default function Layout() {
         },
       }}
     >
-      {/* Inicio */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Inicio',
-          tabBarIcon: () => (
-            <Text style={{ fontSize: 20 }}>
-              🏠
-            </Text>
-          ),
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
         }}
       />
 
-      {/* Mapa */}
       <Tabs.Screen
         name="mapa"
         options={{
           title: 'Mapa',
-          tabBarIcon: () => (
-            <Text style={{ fontSize: 20 }}>
-              🗺️
-            </Text>
-          ),
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text>,
         }}
       />
 
-      {/* Perfil */}
       <Tabs.Screen
         name="perfil"
         options={{
           title: 'Perfil',
-          tabBarIcon: () => (
-            <Text style={{ fontSize: 20 }}>
-              👤
-            </Text>
-          ),
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
         }}
       />
 
-      {/* Ruta de autenticación */}
-      <Tabs.Screen
-        name="auth"
-        options={{
-          href: null,
-        }}
-      />
+      <Tabs.Screen name="auth" options={{ href: null }} />
     </Tabs>
   );
 }

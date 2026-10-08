@@ -27,7 +27,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Permitir a Punto Seguro acceder a tu ubicación."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {
