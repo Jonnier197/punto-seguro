@@ -6,7 +6,8 @@ export interface PuntoSeguro {
   latitud: number;
   longitud: number;
   telefono: string;
-  estado?: string;
+  estado?: 'aprobado' | 'pendiente' | 'rechazado' | string; // 👈 Mejorado
+  creadoPor?: string; // 👈 Para saber quién lo propuso
 }
 
 export interface Sismo {

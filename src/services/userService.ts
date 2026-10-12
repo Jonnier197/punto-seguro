@@ -12,6 +12,8 @@ export interface UserData {
   telefonoEmergencia?: string;
   alergias?: string;
   condiciones?: string;
+  fotoUrl?: string;          // 👈 Agregado para la foto de perfil
+  rol?: 'admin' | 'usuario'; // 👈 Agregado para los roles
 }
 
 export async function getNombreUsuario(): Promise<string> {

@@ -80,6 +80,7 @@ export default function AuthScreen() {
           telefonoEmergencia: 'No especificado',
           alergias: 'Ninguna reportada',
           condiciones: 'Sin condiciones de riesgo',
+          rol: 'usuario',
           createdAt: new Date().toISOString(),
         });
 
@@ -188,4 +189,3 @@ export default function AuthScreen() {
     </KeyboardAvoidingView>
   );
 }
-
