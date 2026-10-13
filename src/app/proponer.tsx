@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,8 +17,9 @@ import {
   View
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { enviarNotificacionPush } from '../services/notificationService';
 
-import { auth } from '../../config/firebase';
+import { auth, db } from '../../config/firebase'; // Asegúrate de tener db importado aquí
 import { proponerPuntoSeguro } from '../services/puntosService';
 
 // 👇 LISTA DE OPCIONES PREDEFINIDAS 👇
@@ -111,6 +113,27 @@ export default function ProponerPuntoScreen() {
     }
   };
 
+  // Función para notificar a los administradores
+  const notificarAdministradores = async (nombreLugar: string) => {
+    try {
+      const adminsQuery = query(collection(db, 'usuarios'), where('rol', '==', 'admin'));
+      const querySnapshot = await getDocs(adminsQuery);
+      
+      querySnapshot.forEach(async (documento) => {
+        const adminData = documento.data();
+        if (adminData.expoPushToken) {
+          await enviarNotificacionPush(
+            adminData.expoPushToken,
+            "🔔 Nueva Propuesta Pendiente",
+            `El usuario ha sugerido el punto "${nombreLugar}". Entra al panel para revisarlo.`
+          );
+        }
+      });
+    } catch (error) {
+      console.error("Error notificando a admins:", error);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!nombre || !tipo || !direccion) {
       Alert.alert('Campos incompletos', 'Por favor llena todos los campos obligatorios (Nombre, Tipo y Dirección).');
@@ -128,6 +151,9 @@ export default function ProponerPuntoScreen() {
         longitud,
         creadoPor: auth.currentUser?.email || 'Usuario desconocido'
       });
+
+      // Disparamos la notificación a los administradores al proponer con éxito
+      await notificarAdministradores(nombre.trim());
       
       setNombre('');
       setTipo('');
@@ -167,7 +193,6 @@ export default function ProponerPuntoScreen() {
             <TextInput style={styles.input} placeholder="Ej. Estación de Bomberos Sur" value={nombre} onChangeText={setNombre} />
 
             <Text style={styles.label}>Tipo de ayuda *</Text>
-            {/* 👇 MENÚ DESPLEGABLE EN LUGAR DEL TEXTINPUT 👇 */}
             <TouchableOpacity 
               style={[styles.input, { justifyContent: 'center' }]} 
               activeOpacity={0.7}

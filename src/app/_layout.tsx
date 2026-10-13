@@ -53,6 +53,9 @@ export default function Layout() {
       <Tabs.Screen name="index" options={{ title: 'Inicio', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text> }} />
       <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text> }} />
       <Tabs.Screen name="proponer" options={{ title: 'Proponer', tabBarIcon: () => <Text style={{ fontSize: 20 }}>➕</Text> }} />
+      
+      {/* 👇 AQUÍ ESTÁ LA NUEVA PESTAÑA DE ALERTAS (El 4to Ícono) 👇 */}
+      <Tabs.Screen name="alertas" options={{ title: 'Alertas', tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚠️</Text> }} />
 
       {/* PANTALLAS OCULTAS DE LA BARRA INFERIOR */}
       <Tabs.Screen name="perfil" options={{ href: null }} />

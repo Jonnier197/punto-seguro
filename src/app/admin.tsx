@@ -1,5 +1,5 @@
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,61 +10,95 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-
-import { actualizarEstadoPunto, fetchPuntosPendientes } from '../services/puntosService';
-import { PuntoSeguro } from '../types';
+import { db } from '../../config/firebase';
+import { enviarNotificacionPush } from '../services/notificationService';
 
 export default function AdminScreen() {
-  const [pendientes, setPendientes] = useState<PuntoSeguro[]>([]);
+  const [propuestas, setPropuestas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const cargarPendientes = async () => {
+  const cargarPropuestasPendientes = async () => {
     setLoading(true);
     try {
-      const data = await fetchPuntosPendientes();
-      setPendientes(data);
+      const q = query(collection(db, 'puntos_seguros'), where('estado', '==', 'pendiente'));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPropuestas(data);
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron cargar los puntos pendientes.');
+      console.error("Error cargando propuestas:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      cargarPendientes();
-    }, [])
-  );
+  useEffect(() => {
+    cargarPropuestasPendientes();
+  }, []);
 
-  const handleAccion = async (id: string, accion: 'aprobado' | 'rechazado') => {
+  const procesarPropuesta = async (idPropuesta: string, idUsuarioCreador: string, nombrePunto: string, accion: 'aprobado' | 'rechazado') => {
     try {
-      await actualizarEstadoPunto(id, accion);
-      setPendientes((prev) => prev.filter((p) => p.id !== id));
-      Alert.alert('Éxito', `El punto ha sido ${accion}.`);
+      const propuestaRef = doc(db, 'puntos_seguros', idPropuesta);
+      await updateDoc(propuestaRef, { estado: accion });
+
+      // 1. Notificar al creador de la propuesta
+      if (idUsuarioCreador) {
+        const usuarioRef = doc(db, 'usuarios', idUsuarioCreador);
+        const usuarioSnap = await getDoc(usuarioRef);
+        
+        if (usuarioSnap.exists() && usuarioSnap.data().expoPushToken) {
+          const tokenCreador = usuarioSnap.data().expoPushToken;
+          const titulo = accion === 'aprobado' ? "✅ ¡Propuesta Aprobada!" : "❌ Propuesta Rechazada";
+          const mensaje = accion === 'aprobado' 
+            ? `Tu punto seguro "${nombrePunto}" ha sido validado.`
+            : `Lo sentimos, tu propuesta "${nombrePunto}" no cumple con las normas.`;
+            
+          await enviarNotificacionPush(tokenCreador, titulo, mensaje);
+        }
+      }
+
+      // 2. Broadcast a la Comunidad (Si fue aprobado)
+      if (accion === 'aprobado') {
+        const todosUsuariosSnap = await getDocs(collection(db, 'usuarios'));
+        
+        todosUsuariosSnap.forEach(async (usuarioDoc) => {
+          const uData = usuarioDoc.data();
+          if (usuarioDoc.id !== idUsuarioCreador && uData.expoPushToken) {
+            await enviarNotificacionPush(
+              uData.expoPushToken,
+              "📍 Nuevo Refugio Cercano",
+              `Se ha habilitado "${nombrePunto}" en el mapa. Échale un vistazo para estar preparado.`
+            );
+          }
+        });
+      }
+
+      Alert.alert('Éxito', `La propuesta ha sido ${accion}.`);
+      cargarPropuestasPendientes();
+
     } catch (error) {
-      Alert.alert('Error', `No se pudo cambiar el estado a ${accion}.`);
+      console.error(`Error procesando propuesta:`, error);
+      Alert.alert('Error', 'Hubo un problema procesando la propuesta.');
     }
   };
 
-  const renderItem = ({ item }: { item: PuntoSeguro }) => (
+  const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
-      <Text style={styles.title}>{item.nombre}</Text>
+      <Text style={styles.cardTitle}>{item.nombre}</Text>
+      <Text style={styles.cardDesc}>{item.descripcion}</Text>
       
-      <View style={styles.infoContainer}>
-        <Text style={styles.text}>📌 <Text style={{ fontWeight: 'bold' }}>Tipo:</Text> {item.tipo}</Text>
-        <Text style={styles.text}>📍 <Text style={{ fontWeight: 'bold' }}>Dirección:</Text> {item.direccion}</Text>
-        <Text style={styles.text}>📞 <Text style={{ fontWeight: 'bold' }}>Teléfono:</Text> {item.telefono}</Text>
-        <View style={styles.divider} />
-        <Text style={styles.textPropuesto}>👤 Propuesto por: {item.creadoPor || 'Desconocido'}</Text>
-      </View>
-      
-      <View style={styles.actions}>
-        <TouchableOpacity style={[styles.button, styles.rejectButton]} onPress={() => handleAccion(item.id, 'rechazado')}>
-          <Text style={styles.buttonText}>❌ Rechazar</Text>
+      <View style={styles.actionsRow}>
+        <TouchableOpacity 
+          style={[styles.button, styles.btnReject]} 
+          onPress={() => procesarPropuesta(item.id, item.idUsuarioCreador, item.nombre, 'rechazado')}
+        >
+          <Text style={styles.btnText}>Rechazar</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.button, styles.approveButton]} onPress={() => handleAccion(item.id, 'aprobado')}>
-          <Text style={styles.buttonText}>✅ Aprobar</Text>
+        
+        <TouchableOpacity 
+          style={[styles.button, styles.btnApprove]} 
+          onPress={() => procesarPropuesta(item.id, item.idUsuarioCreador, item.nombre, 'aprobado')}
+        >
+          <Text style={styles.btnText}>Aprobar</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -74,25 +108,20 @@ export default function AdminScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Panel de Administración</Text>
-        <Text style={styles.headerSubtitle}>Revisión de Puntos Seguros</Text>
       </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#EF4444" style={{ marginTop: 50 }} />
-      ) : pendientes.length === 0 ? (
+      ) : propuestas.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>🎉 ¡Todo al día!</Text>
-          <Text style={styles.emptySubtext}>No hay puntos pendientes por revisar.</Text>
+          <Text style={styles.emptyText}>No hay propuestas pendientes</Text>
         </View>
       ) : (
         <FlatList
-          data={pendientes}
+          data={propuestas}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-          onRefresh={cargarPendientes}
-          refreshing={loading}
+          contentContainerStyle={{ padding: 15 }}
         />
       )}
     </SafeAreaView>
@@ -101,21 +130,16 @@ export default function AdminScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { padding: 20, backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, paddingBottom: 15 },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#1E293B' },
-  headerSubtitle: { fontSize: 14, color: '#64748B', marginTop: 4 },
-  card: { backgroundColor: '#FFFFFF', padding: 18, borderRadius: 16, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, borderWidth: 1, borderColor: '#F1F5F9' },
-  title: { fontSize: 18, fontWeight: 'bold', color: '#0F172A', marginBottom: 12 },
-  infoContainer: { backgroundColor: '#F8FAFC', padding: 12, borderRadius: 10, marginBottom: 15 },
-  text: { fontSize: 14, color: '#475569', marginBottom: 6 },
-  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 8 },
-  textPropuesto: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  button: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  rejectButton: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' },
-  approveButton: { backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0' },
-  buttonText: { fontWeight: 'bold', fontSize: 15, color: '#1E293B' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  emptyText: { fontSize: 24, fontWeight: 'bold', color: '#334155', marginBottom: 10 },
-  emptySubtext: { fontSize: 15, color: '#94A3B8', textAlign: 'center' }
+  header: { backgroundColor: '#1E293B', padding: 20, paddingTop: 40, alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFF' },
+  card: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 15, elevation: 2, borderWidth: 1, borderColor: '#E2E8F0' },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B', marginBottom: 5 },
+  cardDesc: { fontSize: 14, color: '#64748B', marginBottom: 15 },
+  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  button: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  btnReject: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#CBD5E1' },
+  btnApprove: { backgroundColor: '#10B981' },
+  btnText: { fontWeight: 'bold', color: '#1E293B' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 16, color: '#94A3B8' }
 });
