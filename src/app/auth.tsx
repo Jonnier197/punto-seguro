@@ -25,6 +25,8 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  // Estado para controlar la visibilidad de la contraseña
+  const [verPassword, setVerPassword] = useState(false);
   const router = useRouter();
 
   const handleAuth = async () => {
@@ -37,16 +39,12 @@ export default function AuthScreen() {
 
     try {
       if (isLogin) {
-        // =========================
-        // INICIAR SESIÓN  (una sola vez)
-        // =========================
         const userCredential = await signInWithEmailAndPassword(
           auth,
           email.trim(),
           password
         );
 
-        // Leer nombre desde Firestore y guardarlo
         const docSnap = await getDoc(doc(db, 'users', userCredential.user.uid));
         if (docSnap.exists()) {
           const nombreGuardado = docSnap.data().nombre || 'Usuario';
@@ -58,9 +56,6 @@ export default function AuthScreen() {
         Alert.alert('¡Bienvenido!', 'Sesión iniciada correctamente.');
 
       } else {
-        // =========================
-        // REGISTRAR USUARIO
-        // =========================
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           email.trim(),
@@ -151,15 +146,26 @@ export default function AuthScreen() {
           autoCorrect={false}
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña"
-          placeholderTextColor="#94A3B8"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-        />
+        {/* CONTENEDOR MODIFICADO PARA LA CONTRASEÑA */}
+        <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', paddingRight: 10 }]}>
+          <TextInput
+            style={{ flex: 1, padding: 0, margin: 0, color: '#FFFFFF', fontSize: 16 }} // Le quitamos el padding interno para que no engorde la caja
+            placeholder="Contraseña"
+            placeholderTextColor="#94A3B8"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!verPassword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity
+            onPressIn={() => setVerPassword(true)}
+            onPressOut={() => setVerPassword(false)}
+            style={{ paddingHorizontal: 5 }}
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: 20 }}>{verPassword ? '🙈' : '👁️'}</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={styles.button}

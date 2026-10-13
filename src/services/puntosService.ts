@@ -1,76 +1,186 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  updateDoc,
+  where
+} from 'firebase/firestore';
+import { auth, db } from '../../config/firebase';
+import { enviarNotificacionPush } from './notificationService';
 
-import { db } from "../../config/firebase";
-import { PUNTOS_INICIALES } from "../constants/puntosIniciales";
-import { PuntoSeguro } from "../types";
+export interface PuntoSeguro {
+  id?: string;
+  nombre: string;
+  tipo: string;
+  direccion: string;
+  telefono?: string;
+  latitud: number;
+  longitud: number;
+  creadoPor: string;
+  idUsuarioCreador?: string;
+  estado?: 'pendiente' | 'aprobado';
+  fechaCreacion?: Date;
+}
 
-const COLECCION = "puntos_seguros";
-
+// 🌍 TRAER TODOS LOS PUNTOS APROBADOS (PARA EL MAPA)
 export const fetchPuntosSeguros = async (): Promise<PuntoSeguro[]> => {
-  const snapshot = await getDocs(collection(db, COLECCION));
-  const lista: PuntoSeguro[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data() as PuntoSeguro;
-    if (!data.estado || data.estado === 'aprobado') {
-      lista.push({ id: doc.id, ...data });
-    }
-  });
-  return lista;
-};
-
-export const fetchPuntosPendientes = async (): Promise<PuntoSeguro[]> => {
-  const q = query(collection(db, COLECCION), where("estado", "==", "pendiente"));
-  const snapshot = await getDocs(q);
-  const lista: PuntoSeguro[] = [];
-  snapshot.forEach((doc) => {
-    lista.push({ id: doc.id, ...doc.data() } as PuntoSeguro);
-  });
-  return lista;
-};
-
-export const fetchMisPuntosPendientes = async (email: string): Promise<PuntoSeguro[]> => {
-  const q = query(collection(db, COLECCION), where("creadoPor", "==", email));
-  const snapshot = await getDocs(q);
-  
-  const lista: PuntoSeguro[] = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data() as PuntoSeguro;
-    if (data.estado === 'pendiente') {
-      lista.push({ id: doc.id, ...data });
-    }
-  });
-  
-  return lista;
-};
-
-export const proponerPuntoSeguro = async (punto: Omit<PuntoSeguro, 'id'>): Promise<void> => {
-  await addDoc(collection(db, COLECCION), {
-    ...punto,
-    estado: 'pendiente'
-  });
-};
-
-export const actualizarEstadoPunto = async (id: string, estado: 'aprobado' | 'rechazado'): Promise<void> => {
-  const ref = doc(db, COLECCION, id);
-  await updateDoc(ref, { estado });
-};
-
-export const eliminarPuntoSeguro = async (id: string): Promise<void> => {
-  const ref = doc(db, COLECCION, id);
-  await deleteDoc(ref);
-};
-
-export const crearPuntosAutomaticos = async (): Promise<void> => {
-  for (const punto of PUNTOS_INICIALES) {
-    await addDoc(collection(db, COLECCION), { ...punto, estado: 'aprobado' });
+  try {
+    const q = query(collection(db, 'puntos_seguros'), where('estado', '==', 'aprobado'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PuntoSeguro));
+  } catch (error) {
+    console.error("Error obteniendo puntos seguros:", error);
+    return [];
   }
 };
 
+// 👤 TRAER MIS PUNTOS PENDIENTES (PARA LA PANTALLA "MIS PUNTOS")
+export const fetchMisPuntosPendientes = async (email: string): Promise<PuntoSeguro[]> => {
+  try {
+    const q = query(
+      collection(db, 'puntos_seguros'), 
+      where('creadoPor', '==', email),
+      where('estado', '==', 'pendiente')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PuntoSeguro));
+  } catch (error) {
+    console.error("Error obteniendo mis puntos:", error);
+    return [];
+  }
+};
+
+// 📏 CALCULAR DISTANCIA ENTRE DOS COORDENADAS (EN KM)
 export const calcularDistancia = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  const R = 6371; // Radio de la Tierra en km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(1));
+};
+
+// 🔔 NOTIFICAR A TODOS LOS ADMINISTRADORES
+export const notificarAdministradores = async (titulo: string, mensaje: string) => {
+  try {
+    const adminsQuery = query(collection(db, 'users'), where('rol', '==', 'admin'));
+    const querySnapshot = await getDocs(adminsQuery);
+
+    const envios = querySnapshot.docs.map(async (documento) => {
+      const adminData = documento.data();
+      if (adminData.expoPushToken) {
+        await enviarNotificacionPush(adminData.expoPushToken, titulo, mensaje);
+      }
+    });
+
+    await Promise.all(envios);
+  } catch (error) {
+    console.error('Error notificando a administradores:', error);
+  }
+};
+
+// 🔔 NOTIFICAR A UN USUARIO ESPECÍFICO (POR UID O EMAIL)
+export const notificarUsuario = async (identificador: string, titulo: string, mensaje: string) => {
+  try {
+    let tokenTarget: string | null = null;
+
+    // Buscar primero por UID
+    const userDocRef = doc(db, 'users', identificador);
+    const userSnap = await getDoc(userDocRef);
+
+    if (userSnap.exists() && userSnap.data().expoPushToken) {
+      tokenTarget = userSnap.data().expoPushToken;
+    } else {
+      // Buscar por email si no lo encuentra por ID
+      const userQuery = query(collection(db, 'users'), where('email', '==', identificador));
+      const querySnapshot = await getDocs(userQuery);
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+        if (userData.expoPushToken) {
+          tokenTarget = userData.expoPushToken;
+        }
+      }
+    }
+
+    if (tokenTarget) {
+      await enviarNotificacionPush(tokenTarget, titulo, mensaje);
+    }
+  } catch (error) {
+    console.error('Error notificando a usuario:', error);
+  }
+};
+
+// 📌 PROPONER NUEVO PUNTO SEGURO (USUARIO)
+export const proponerPuntoSeguro = async (punto: PuntoSeguro) => {
+  const uidActual = auth.currentUser?.uid;
+  const emailActual = auth.currentUser?.email || 'Usuario desconocido';
+
+  const nuevoPunto = {
+    ...punto,
+    estado: 'pendiente',
+    creadoPor: emailActual,
+    idUsuarioCreador: uidActual || emailActual,
+    fechaCreacion: new Date()
+  };
+
+  const docRef = await addDoc(collection(db, 'puntos_seguros'), nuevoPunto);
+  return docRef.id;
+};
+
+// ✅ APROBAR PUNTO SEGURO (ADMINISTRADOR)
+export const aprobarPuntoSeguro = async (idPunto: string) => {
+  const puntoRef = doc(db, 'puntos_seguros', idPunto);
+  const puntoSnap = await getDoc(puntoRef);
+
+  if (!puntoSnap.exists()) return;
+
+  const puntoData = puntoSnap.data();
+  const nombrePunto = puntoData.nombre || 'Punto Seguro';
+  const idCreador = puntoData.idUsuarioCreador || puntoData.creadoPor;
+
+  await updateDoc(puntoRef, { estado: 'aprobado' });
+
+  if (idCreador) {
+    await notificarUsuario(
+      idCreador,
+      '🎉 ¡Tu propuesta fue aprobada!',
+      `Tu punto seguro "${nombrePunto}" ya es visible para toda la comunidad.`
+    );
+  }
+};
+
+// 🗑️ ELIMINAR PUNTO SEGURO (ADMIN O USUARIO)
+export const eliminarPuntoSeguro = async (idPunto: string, esAdmin: boolean = false) => {
+  const puntoRef = doc(db, 'puntos_seguros', idPunto);
+  const puntoSnap = await getDoc(puntoRef);
+
+  if (!puntoSnap.exists()) return;
+
+  const puntoData = puntoSnap.data();
+  const nombrePunto = puntoData.nombre || 'Punto Seguro';
+  const idCreador = puntoData.idUsuarioCreador || puntoData.creadoPor;
+
+  await deleteDoc(puntoRef);
+
+  if (esAdmin) {
+    if (idCreador) {
+      await notificarUsuario(
+        idCreador,
+        '🗑️ Punto Seguro Removido',
+        `Un administrador ha eliminado el punto seguro "${nombrePunto}".`
+      );
+    }
+  } else {
+    await notificarAdministradores(
+      '🗑️ Propuesta Retirada',
+      `Un usuario ha retirado la propuesta del punto seguro "${nombrePunto}".`
+    );
+  }
 };

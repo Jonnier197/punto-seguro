@@ -1,6 +1,8 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+// Importamos la persistencia especial para React Native
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
 
 // Configuración de Firebase para Punto Seguro
 const firebaseConfig = {
@@ -12,10 +14,13 @@ const firebaseConfig = {
   appId: "1:159913418409:web:07b2009da20d6abb9d3b8"
 };
 
-// Inicializar la App de Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializar y exportar los servicios que usaremos en la app
-export const db = getFirestore(app);
-export const auth = getAuth(app);
-export default app;
+// Inicializamos la autenticación forzando a que se guarde en el celular
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
+
+const db = getFirestore(app);
+
+export { auth, db };

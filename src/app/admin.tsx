@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -16,9 +17,12 @@ import { enviarNotificacionPush } from '../services/notificationService';
 export default function AdminScreen() {
   const [propuestas, setPropuestas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // Nuevo estado para el scroll
 
-  const cargarPropuestasPendientes = async () => {
-    setLoading(true);
+  const cargarPropuestasPendientes = async (isRefresh = false) => {
+    // Si no es un refresh (como al iniciar la app), mostramos la carga completa
+    if (!isRefresh) setLoading(true); 
+    
     try {
       const q = query(collection(db, 'puntos_seguros'), where('estado', '==', 'pendiente'));
       const snapshot = await getDocs(q);
@@ -27,13 +31,20 @@ export default function AdminScreen() {
     } catch (error) {
       console.error("Error cargando propuestas:", error);
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   };
 
   useEffect(() => {
     cargarPropuestasPendientes();
   }, []);
+
+  // 👈 Función que se ejecuta al jalar hacia abajo
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await cargarPropuestasPendientes(true);
+    setRefreshing(false);
+  };
 
   const procesarPropuesta = async (idPropuesta: string, idUsuarioCreador: string, nombrePunto: string, accion: 'aprobado' | 'rechazado') => {
     try {
@@ -42,7 +53,7 @@ export default function AdminScreen() {
 
       // 1. Notificar al creador de la propuesta
       if (idUsuarioCreador) {
-        const usuarioRef = doc(db, 'usuarios', idUsuarioCreador);
+        const usuarioRef = doc(db, 'users', idUsuarioCreador);
         const usuarioSnap = await getDoc(usuarioRef);
         
         if (usuarioSnap.exists() && usuarioSnap.data().expoPushToken) {
@@ -58,9 +69,9 @@ export default function AdminScreen() {
 
       // 2. Broadcast a la Comunidad (Si fue aprobado)
       if (accion === 'aprobado') {
-        const todosUsuariosSnap = await getDocs(collection(db, 'usuarios'));
+        const todosUsuariosSnap = await getDocs(collection(db, 'users'));
         
-        todosUsuariosSnap.forEach(async (usuarioDoc) => {
+        const enviosBroadcast = todosUsuariosSnap.docs.map(async (usuarioDoc) => {
           const uData = usuarioDoc.data();
           if (usuarioDoc.id !== idUsuarioCreador && uData.expoPushToken) {
             await enviarNotificacionPush(
@@ -70,6 +81,8 @@ export default function AdminScreen() {
             );
           }
         });
+
+        await Promise.all(enviosBroadcast);
       }
 
       Alert.alert('Éxito', `La propuesta ha sido ${accion}.`);
@@ -84,7 +97,7 @@ export default function AdminScreen() {
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{item.nombre}</Text>
-      <Text style={styles.cardDesc}>{item.descripcion}</Text>
+      <Text style={styles.cardDesc}>{item.descripcion || item.direccion}</Text>
       
       <View style={styles.actionsRow}>
         <TouchableOpacity 
@@ -112,16 +125,25 @@ export default function AdminScreen() {
 
       {loading ? (
         <ActivityIndicator size="large" color="#EF4444" style={{ marginTop: 50 }} />
-      ) : propuestas.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No hay propuestas pendientes</Text>
-        </View>
       ) : (
         <FlatList
           data={propuestas}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: 15 }}
+          contentContainerStyle={{ padding: 15, flexGrow: 1 }} // 👈 flexGrow: 1 es vital para que el pull-to-refresh funcione vacío
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#1E293B']} // Color del spinner en Android
+              tintColor={'#1E293B'} // Color del spinner en iOS
+            />
+          }
+          ListEmptyComponent={ // 👈 Movemos la pantalla vacía aquí para no perder el scroll
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay propuestas pendientes</Text>
+            </View>
+          }
         />
       )}
     </SafeAreaView>

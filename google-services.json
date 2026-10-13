@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "159913418409",
+    "project_id": "punto-seguro1",
+    "storage_bucket": "punto-seguro1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:159913418409:android:84d376a8fdc03bd499d3b8",
+        "android_client_info": {
+          "package_name": "com.jonnier197.puntoseguro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQxxs0cGw7KE_ZBCCI-N74HadC90oZWWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

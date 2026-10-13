@@ -18,6 +18,8 @@ import {
 import { auth } from '../../config/firebase';
 import { calcularDistancia, eliminarPuntoSeguro, fetchPuntosSeguros } from '../services/puntosService';
 import { obtenerPerfilUsuario, UserData } from '../services/userService';
+// 👇 IMPORTAMOS EL SERVICIO DE NOTIFICACIONES 👇
+import { registrarParaNotificacionesPush } from '../services/notificationService';
 import { styles } from '../styles/indexStyles';
 import { PuntoSeguro } from '../types';
 import { getEmojiTipo } from '../utils/emojis';
@@ -81,6 +83,8 @@ export default function Index() {
 
   useEffect(() => {
     cargarDatos();
+    // 👇 FORZAMOS EL REGISTRO DEL TOKEN AL ENTRAR A LA PANTALLA PRINCIPAL 👇
+    registrarParaNotificacionesPush();
   }, []);
 
   useFocusEffect(
@@ -146,7 +150,6 @@ export default function Index() {
           <Text style={styles.appName}>PUNTO SEGURO</Text>
         </View>
         
-        {/* 👇 AQUÍ HACEMOS LA MAGIA DE LA FOTO CIRCULAR 👇 */}
         <TouchableOpacity 
           style={[
             styles.profileBadge, 

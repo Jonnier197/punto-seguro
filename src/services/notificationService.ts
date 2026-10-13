@@ -49,12 +49,18 @@ export async function registrarParaNotificacionesPush(): Promise<string | null> 
 
       if (finalStatus !== 'granted') return null;
 
-      const pushTokenData = await Notifications.getExpoPushTokenAsync();
+      // MODIFICACIÓN CRÍTICA: Extraemos el projectId para que el APK standalone genere el token
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      
+      const pushTokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: projectId,
+      });
+      
       const token = pushTokenData.data;
 
       const user = auth.currentUser;
       if (user) {
-        const userRef = doc(db, 'usuarios', user.uid);
+        const userRef = doc(db, 'users', user.uid);
         await setDoc(userRef, { expoPushToken: token }, { merge: true });
       }
 
@@ -72,7 +78,7 @@ export async function guardarPreferenciasAlertas(preferencias: Partial<Preferenc
   if (!user) return;
 
   try {
-    const userRef = doc(db, 'usuarios', user.uid);
+    const userRef = doc(db, 'users', user.uid);
     await setDoc(userRef, { preferenciasAlertas: preferencias }, { merge: true });
   } catch (error) {
     console.error('Error guardando preferencias:', error);
@@ -90,7 +96,7 @@ export async function obtenerPreferenciasAlertas(): Promise<PreferenciasAlertas>
   if (!user) return porDefecto;
 
   try {
-    const userRef = doc(db, 'usuarios', user.uid);
+    const userRef = doc(db, 'users', user.uid);
     const docSnap = await getDoc(userRef);
 
     if (docSnap.exists() && docSnap.data().preferenciasAlertas) {

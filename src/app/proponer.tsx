@@ -116,10 +116,10 @@ export default function ProponerPuntoScreen() {
   // Función para notificar a los administradores
   const notificarAdministradores = async (nombreLugar: string) => {
     try {
-      const adminsQuery = query(collection(db, 'usuarios'), where('rol', '==', 'admin'));
+      const adminsQuery = query(collection(db, 'users'), where('rol', '==', 'admin'));
       const querySnapshot = await getDocs(adminsQuery);
       
-      querySnapshot.forEach(async (documento) => {
+      const envios = querySnapshot.docs.map(async (documento) => {
         const adminData = documento.data();
         if (adminData.expoPushToken) {
           await enviarNotificacionPush(
@@ -129,6 +129,8 @@ export default function ProponerPuntoScreen() {
           );
         }
       });
+
+      await Promise.all(envios);
     } catch (error) {
       console.error("Error notificando a admins:", error);
     }
@@ -142,6 +144,9 @@ export default function ProponerPuntoScreen() {
 
     setLoading(true);
     try {
+      const uidActual = auth.currentUser?.uid;
+      const emailActual = auth.currentUser?.email || 'Usuario desconocido';
+
       await proponerPuntoSeguro({
         nombre: nombre.trim(),
         tipo,
@@ -149,7 +154,8 @@ export default function ProponerPuntoScreen() {
         telefono: telefono.trim() || 'No especificado',
         latitud,
         longitud,
-        creadoPor: auth.currentUser?.email || 'Usuario desconocido'
+        creadoPor: emailActual,
+        idUsuarioCreador: uidActual || emailActual
       });
 
       // Disparamos la notificación a los administradores al proponer con éxito
