@@ -1,56 +1,41 @@
-# Welcome to your Expo app 👋
+# 🛡️ Punto Seguro
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> Aplicación móvil colaborativa en tiempo real para la gestión, notificación y ubicación de puntos de atención, refugio y alertas ante situaciones de emergencia.
 
-## Get started
+![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Expo](https://img.shields.io/badge/Expo-000000?style=for-the-badge&logo=expo&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## 📱 Descripción
 
-2. Start the app
+**Punto Seguro** es una solución móvil diseñada para conectar a la comunidad en situaciones de riesgo o desastres naturales. Permite a los usuarios ubicar puntos de socorro cercanos en un mapa interactivo, proponer nuevos lugares de ayuda, gestionar información médica de emergencia y recibir notificaciones push en tiempo real sobre alertas sísmicas y actualización de propuestas.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## ✨ Características Principales
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **🗺️ Mapa Interactivo en Tiempo Real:** Visualización de puntos de ayuda aprobados con cálculo de distancia automática desde la ubicación actual del usuario.
+- **🔔 Notificaciones Push Bidireccionales:** 
+  - Alertas instantáneas a administradores cuando se propone un nuevo punto.
+  - Notificaciones personalizadas al usuario cuando su propuesta es aprobada o modificada.
+- **📲 Actualizaciones Over-The-Air (EAS Update):** Despliegue de mejoras y parches en caliente sin necesidad de reinstalar la APK.
+- **📑 Moderación de Puntos:** Sistema de roles (`usuario` / `admin`) para revisar, aprobar o eliminar solicitudes de la comunidad.
+- **🏥 Perfil de Emergencia:** Registro de datos clave (grupo sanguíneo, alergias, condiciones médicas y contactos directos de emergencia).
+- **🔒 Autenticación Segura:** Inicio de sesión y registro con validaciones de visibilidad de credenciales e integración con Firebase Auth.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🛠️ Tecnologías Utilizadas
 
-When you're ready, run:
+- **Framework:** React Native + Expo (Expo Router)
+- **Lenguaje:** TypeScript
+- **Base de Datos & Auth:** Firebase Firestore & Firebase Auth
+- **Notificaciones Push:** Expo Notifications & EAS Push Service
+- **Geolocalización:** Expo Location & React Native Maps
+- **Despliegue OTA:** EAS Updates (Expo Application Services)
 
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+📄 Licencia
+Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE para más detalles.
