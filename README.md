@@ -37,5 +37,6 @@
 - **Geolocalización:** Expo Location & React Native Maps
 - **Despliegue OTA:** EAS Updates (Expo Application Services)
 
-📄 Licencia
-Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE para más detalles.
+## 📄 Licencia
+
+- Este proyecto está bajo la Licencia MIT. Consulta el archivo LICENSE para más detalles.
