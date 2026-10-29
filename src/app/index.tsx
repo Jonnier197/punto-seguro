@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 // 👇 IMPORTAMOS ADMOB 👇
 import {
   BannerAd,
@@ -28,6 +29,7 @@ import {
   fetchPuntosSeguros,
 } from "../services/puntosService";
 import { obtenerPerfilUsuario, UserData } from "../services/userService";
+
 // 👇 IMPORTAMOS EL SERVICIO DE NOTIFICACIONES 👇
 import { registrarParaNotificacionesPush } from "../services/notificationService";
 import { styles } from "../styles/indexStyles";
@@ -158,6 +160,11 @@ export default function Index() {
     );
   };
 
+  // 👇 DECLARAMOS EL ID DEL ANUNCIO AQUÍ, JUSTO ANTES DEL RETURN 👇
+  const adUnitId = __DEV__
+    ? TestIds.BANNER
+    : "ca-app-pub-5334815455665872/6664516582";
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -232,6 +239,7 @@ export default function Index() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>{item.nombre}</Text>
+                    {/* 👇 SE CORRIGIÓ EL SALTO DE LÍNEA EXTRAÑO AQUÍ 👇 */}
                     <Text style={styles.itemSubtitle}>
                       📍 a {item.distanciaText} - {item.estado || item.tipo}
                     </Text>
@@ -286,8 +294,8 @@ export default function Index() {
         }}
       >
         <BannerAd
-          unitId={TestIds.BANNER}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          unitId={adUnitId}
+          size={BannerAdSize.BANNER}
           requestOptions={{
             requestNonPersonalizedAdsOnly: true,
           }}
