@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,17 +12,27 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
+// 👇 IMPORTAMOS ADMOB 👇
+import {
+  BannerAd,
+  BannerAdSize,
+  TestIds,
+} from "react-native-google-mobile-ads";
 
-import { auth } from '../../config/firebase';
-import { calcularDistancia, eliminarPuntoSeguro, fetchPuntosSeguros } from '../services/puntosService';
-import { obtenerPerfilUsuario, UserData } from '../services/userService';
+import { auth } from "../../config/firebase";
+import {
+  calcularDistancia,
+  eliminarPuntoSeguro,
+  fetchPuntosSeguros,
+} from "../services/puntosService";
+import { obtenerPerfilUsuario, UserData } from "../services/userService";
 // 👇 IMPORTAMOS EL SERVICIO DE NOTIFICACIONES 👇
-import { registrarParaNotificacionesPush } from '../services/notificationService';
-import { styles } from '../styles/indexStyles';
-import { PuntoSeguro } from '../types';
-import { getEmojiTipo } from '../utils/emojis';
+import { registrarParaNotificacionesPush } from "../services/notificationService";
+import { styles } from "../styles/indexStyles";
+import { PuntoSeguro } from "../types";
+import { getEmojiTipo } from "../utils/emojis";
 
 LogBox.ignoreAllLogs();
 
@@ -34,12 +44,12 @@ type PuntoConDistancia = PuntoSeguro & {
 export default function Index() {
   const router = useRouter();
 
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState("");
   const [puntos, setPuntos] = useState<PuntoConDistancia[]>([]);
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
-  
-  const [nombreUsuario, setNombreUsuario] = useState('Usuario');
+
+  const [nombreUsuario, setNombreUsuario] = useState("Usuario");
   const [usuarioActual, setUsuarioActual] = useState<UserData | null>(null);
 
   const cargarDatos = async (esRefresco = false) => {
@@ -54,7 +64,7 @@ export default function Index() {
       let userLng = -76.3036;
 
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
+      if (status === "granted") {
         const location = await Location.getCurrentPositionAsync({});
         userLat = location.coords.latitude;
         userLng = location.coords.longitude;
@@ -71,7 +81,7 @@ export default function Index() {
 
       setPuntos(calculada);
     } catch (error) {
-      console.log('Error cargando puntos:', error);
+      console.log("Error cargando puntos:", error);
     } finally {
       if (esRefresco) {
         setRefrescando(false);
@@ -90,26 +100,26 @@ export default function Index() {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const nombre = await AsyncStorage.getItem('nombreUsuario');
+        const nombre = await AsyncStorage.getItem("nombreUsuario");
         if (nombre) {
-          setNombreUsuario(nombre.split(' ')[0]);
+          setNombreUsuario(nombre.split(" ")[0]);
         } else {
-          setNombreUsuario('Usuario');
+          setNombreUsuario("Usuario");
         }
 
         const perfil = await obtenerPerfilUsuario();
         setUsuarioActual(perfil);
       })();
-    }, [])
+    }, []),
   );
 
   const puntosFiltrados = puntos.filter((p) =>
-    p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    p.nombre.toLowerCase().includes(busqueda.toLowerCase()),
   );
 
   const irAlMapa = (punto: PuntoConDistancia) => {
     router.push({
-      pathname: '/mapa',
+      pathname: "/mapa",
       params: {
         focusId: punto.id,
         lat: punto.latitud.toString(),
@@ -121,24 +131,30 @@ export default function Index() {
 
   const confirmarEliminacion = (id: string, nombre: string) => {
     Alert.alert(
-      'Eliminar Punto Seguro',
+      "Eliminar Punto Seguro",
       `¿Estás seguro de que deseas eliminar "${nombre}"? Esta acción no se puede deshacer.`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: async () => {
             try {
               await eliminarPuntoSeguro(id);
               setPuntos((prev) => prev.filter((p) => p.id !== id));
-              Alert.alert('Éxito', 'El punto seguro ha sido borrado exitosamente.');
+              Alert.alert(
+                "Éxito",
+                "El punto seguro ha sido borrado exitosamente.",
+              );
             } catch (error) {
-              Alert.alert('Error', 'Hubo un problema al intentar eliminar el punto.');
+              Alert.alert(
+                "Error",
+                "Hubo un problema al intentar eliminar el punto.",
+              );
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -149,18 +165,20 @@ export default function Index() {
           <Text style={styles.greeting}>¡Hola, {nombreUsuario}! 👋</Text>
           <Text style={styles.appName}>PUNTO SEGURO</Text>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[
-            styles.profileBadge, 
-            usuarioActual?.fotoUrl ? { padding: 0, backgroundColor: 'transparent', borderWidth: 0 } : {}
-          ]} 
-          onPress={() => router.push('/perfil')}
+            styles.profileBadge,
+            usuarioActual?.fotoUrl
+              ? { padding: 0, backgroundColor: "transparent", borderWidth: 0 }
+              : {},
+          ]}
+          onPress={() => router.push("/perfil")}
         >
           {usuarioActual?.fotoUrl ? (
-            <Image 
-              source={{ uri: usuarioActual.fotoUrl }} 
-              style={{ width: 44, height: 44, borderRadius: 22 }} 
+            <Image
+              source={{ uri: usuarioActual.fotoUrl }}
+              style={{ width: 44, height: 44, borderRadius: 22 }}
             />
           ) : (
             <Text style={{ fontSize: 20 }}>👤</Text>
@@ -182,7 +200,11 @@ export default function Index() {
         <Text style={styles.sectionTitle}>Puntos Cercanos a tu Ubicación</Text>
 
         {cargando ? (
-          <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 20 }} />
+          <ActivityIndicator
+            size="small"
+            color="#007AFF"
+            style={{ marginTop: 20 }}
+          />
         ) : (
           <FlatList
             data={puntosFiltrados}
@@ -191,8 +213,10 @@ export default function Index() {
             refreshing={refrescando}
             onRefresh={() => cargarDatos(true)}
             renderItem={({ item }) => {
-              const esCreador = item.creadoPor === auth.currentUser?.email && item.creadoPor !== undefined;
-              const esAdmin = usuarioActual?.rol === 'admin';
+              const esCreador =
+                item.creadoPor === auth.currentUser?.email &&
+                item.creadoPor !== undefined;
+              const esAdmin = usuarioActual?.rol === "admin";
               const puedeEliminar = esCreador || esAdmin;
 
               return (
@@ -202,26 +226,46 @@ export default function Index() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.iconContainer}>
-                    <Text style={{ fontSize: 26 }}>{getEmojiTipo(item.tipo)}</Text>
+                    <Text style={{ fontSize: 26 }}>
+                      {getEmojiTipo(item.tipo)}
+                    </Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>{item.nombre}</Text>
                     <Text style={styles.itemSubtitle}>
-                      📍 a {item.distanciaText} • {item.estado || item.tipo}
+                      📍 a {item.distanciaText} - {item.estado || item.tipo}
                     </Text>
                   </View>
-                  
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
                     {puedeEliminar && (
-                      <TouchableOpacity 
-                        style={{ paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#FEE2E2', borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: '#FECACA' }}
-                        onPress={() => confirmarEliminacion(item.id, item.nombre)}
+                      <TouchableOpacity
+                        style={{
+                          paddingVertical: 6,
+                          paddingHorizontal: 10,
+                          backgroundColor: "#FEE2E2",
+                          borderRadius: 8,
+                          marginRight: 8,
+                          borderWidth: 1,
+                          borderColor: "#FECACA",
+                        }}
+                        onPress={() =>
+                          confirmarEliminacion(item.id, item.nombre)
+                        }
                       >
                         <Text style={{ fontSize: 16 }}>🗑️</Text>
                       </TouchableOpacity>
                     )}
                     <View style={styles.navButton}>
-                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>➔</Text>
+                      <Text
+                        style={{
+                          color: "#FFF",
+                          fontWeight: "bold",
+                          fontSize: 16,
+                        }}
+                      >
+                        ➔
+                      </Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -229,6 +273,25 @@ export default function Index() {
             }}
           />
         )}
+      </View>
+
+      {/* 👇 BANNER DE ADMOB FIJADO EN LA PARTE INFERIOR 👇 */}
+      <View
+        style={{
+          alignItems: "center",
+          width: "100%",
+          paddingTop: 5,
+          paddingBottom: 10,
+          backgroundColor: "#F8FAFC",
+        }}
+      >
+        <BannerAd
+          unitId={TestIds.BANNER}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
       </View>
     </SafeAreaView>
   );
