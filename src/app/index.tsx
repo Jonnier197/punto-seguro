@@ -200,14 +200,32 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
+      {/* BARRA DE BÚSQUEDA RESTAURADA CON SU ESTILO ORIGINAL Y LA "✕" INTEGRADA */}
+      <View
+        style={[
+          styles.searchContainer,
+          { flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
+        ]}
+      >
         <TextInput
-          style={styles.searchInput}
+          style={{ flex: 1, height: "100%", fontSize: 15, color: "#0F172A" }}
           placeholder="🔍 Buscar ayuda... (Ej. Agua, Bomberos)"
           placeholderTextColor="#94A3B8"
           value={busqueda}
           onChangeText={setBusqueda}
         />
+        {busqueda.length > 0 && (
+          <TouchableOpacity
+            onPress={() => setBusqueda("")}
+            style={{ padding: 6 }}
+          >
+            <Text
+              style={{ fontSize: 16, color: "#64748B", fontWeight: "bold" }}
+            >
+              ✕
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={{ paddingHorizontal: 16, marginVertical: 12 }}>

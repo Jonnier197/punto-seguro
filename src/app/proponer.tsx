@@ -44,7 +44,7 @@ export default function ProponerPuntoScreen() {
   const [longitud, setLongitud] = useState(-76.3036);
 
   const [loading, setLoading] = useState(false);
-  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false); // 👈 Nuevo estado de búsqueda
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
   const [mapaListo, setMapaListo] = useState(false);
 
   const [mostrarMapa, setMostrarMapa] = useState(false);
@@ -69,7 +69,7 @@ export default function ProponerPuntoScreen() {
     })();
   }, []);
 
-  // 👇 NUEVA FUNCIÓN: GEOCODIFICACIÓN DE DIRECCIÓN 👇
+  // 👇 GEOCODIFICACIÓN DE DIRECCIÓN Y APERTURA AUTOMÁTICA DEL MAPA 👇
   const buscarDireccionEnMapa = async () => {
     if (!direccion.trim()) {
       Alert.alert("Atención", "Por favor, escribe una dirección primero.");
@@ -85,7 +85,7 @@ export default function ProponerPuntoScreen() {
         setLatitud(latitude);
         setLongitud(longitude);
 
-        // Se abre automáticamente el mapa para que el usuario confirme si el pin cayó bien
+        // Abre automáticamente el mapa para confirmar el pin
         setMostrarMapa(true);
       } else {
         Alert.alert(
@@ -265,7 +265,6 @@ export default function ProponerPuntoScreen() {
 
             <Text style={styles.label}>Dirección *</Text>
 
-            {/* 👇 NUEVO CAMPO DE DIRECCIÓN CON BOTÓN DE BÚSQUEDA INTEGRADO 👇 */}
             <View style={{ flexDirection: "row", gap: 8 }}>
               <TextInput
                 style={[styles.input, { flex: 1 }]}
@@ -299,19 +298,10 @@ export default function ProponerPuntoScreen() {
 
             <View style={styles.divider} />
 
-            <Text style={styles.label}>Ubicación Precisa *</Text>
-
-            <TouchableOpacity
-              style={styles.openMapButton}
-              onPress={() => setMostrarMapa(true)}
-            >
-              <Text style={styles.openMapButtonText}>
-                📍 Ajustar pin en el mapa manualmente
-              </Text>
-            </TouchableOpacity>
-
+            {/* SE ELIMINÓ EL BOTÓN REDUNDANTE DE AJUSTAR PIN MANUALMENTE */}
             <Text style={styles.coordinatesText}>
-              Coordenadas actuales: {latitud.toFixed(4)}, {longitud.toFixed(4)}
+              Coordenadas seleccionadas: {latitud.toFixed(4)},{" "}
+              {longitud.toFixed(4)}
             </Text>
 
             <TouchableOpacity
@@ -338,7 +328,9 @@ export default function ProponerPuntoScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Toca para fijar el punto</Text>
+            <Text style={styles.modalTitle}>
+              Toca el mapa para ajustar el pin
+            </Text>
           </View>
           <View style={styles.modalMapWrapper}>
             {!mapaListo ? (
@@ -349,7 +341,7 @@ export default function ProponerPuntoScreen() {
               />
             ) : (
               <WebView
-                key={`${latitud}-${longitud}`} // Forzar refresco si las props cambian por geocodificación
+                key={`${latitud}-${longitud}`}
                 source={{ html: leafletHTML }}
                 style={{ flex: 1 }}
                 onMessage={handleMapMessage}
@@ -407,7 +399,7 @@ export default function ProponerPuntoScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F1F5F9" }, // 👈 Fondo azulado
+  container: { flex: 1, backgroundColor: "#F1F5F9" },
   scrollContent: { padding: 20, paddingBottom: 40 },
   header: { marginBottom: 15, marginTop: 10 },
   headerTitle: {
@@ -415,7 +407,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#0B3B70",
     textAlign: "center",
-  }, // 👈 Azul profundo
+  },
   description: {
     fontSize: 14,
     color: "#64748B",
@@ -452,7 +444,6 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 20 },
 
-  // Estilo del nuevo botón buscar
   searchLocationButton: {
     backgroundColor: "#1677D2",
     paddingHorizontal: 16,
@@ -461,34 +452,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
-  openMapButton: {
-    backgroundColor: "#DBEAFE",
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#93C5FD",
-    marginBottom: 8,
-  },
-  openMapButtonText: { color: "#1E3A8A", fontWeight: "bold", fontSize: 15 },
   coordinatesText: {
-    fontSize: 12,
-    color: "#94A3B8",
+    fontSize: 13,
+    color: "#475569",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 15,
+    fontWeight: "500",
   },
 
-  // 👈 CORRECCIÓN AL AZUL OFICIAL EN LUGAR DE ROJO 👇
   submitButton: {
     backgroundColor: "#1677D2",
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: "center",
-    marginTop: 15,
+    marginTop: 5,
   },
   submitButtonText: { color: "#FFFFFF", fontWeight: "bold", fontSize: 16 },
 
-  // Estilos del Modal del Mapa
   modalContainer: { flex: 1, backgroundColor: "#F1F5F9" },
   modalHeader: {
     padding: 20,
@@ -510,10 +490,9 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: "center",
-  }, // 👈 Azul oficial
+  },
   confirmMapButtonText: { color: "#FFFFFF", fontWeight: "bold", fontSize: 16 },
 
-  // Estilos del Modal de Tipos de Ayuda
   dropdownOverlay: {
     flex: 1,
     backgroundColor: "rgba(11, 59, 112, 0.4)",
