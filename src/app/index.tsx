@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 
-// 👇 IMPORTAMOS ADMOB 👇
+//IMPORTAMOS ADMOB
 import {
   BannerAd,
   BannerAdSize,
@@ -23,18 +23,19 @@ import {
 } from "react-native-google-mobile-ads";
 
 import { auth } from "../../config/firebase";
+import { registrarParaNotificacionesPush } from "../services/notificationService";
 import {
   calcularDistancia,
   eliminarPuntoSeguro,
   fetchPuntosSeguros,
 } from "../services/puntosService";
 import { obtenerPerfilUsuario, UserData } from "../services/userService";
-
-// 👇 IMPORTAMOS EL SERVICIO DE NOTIFICACIONES 👇
-import { registrarParaNotificacionesPush } from "../services/notificationService";
 import { styles } from "../styles/indexStyles";
 import { PuntoSeguro } from "../types";
 import { getEmojiTipo } from "../utils/emojis";
+
+//IMPORTAMOS LA NUEVA CONFIGURACIÓN DE CATEGORÍAS
+import { CATEGORIAS_OFICIALES } from "../utils/categoryIcons";
 
 LogBox.ignoreAllLogs();
 
@@ -77,7 +78,11 @@ export default function Index() {
       const calculada: PuntoConDistancia[] = lista
         .map((p) => {
           const d = calcularDistancia(userLat, userLng, p.latitud, p.longitud);
-          return { ...p, distanciaVal: d, distanciaText: `${d} km` };
+          return {
+            ...p,
+            distanciaVal: d,
+            distanciaText: `${d} km`,
+          } as PuntoConDistancia;
         })
         .sort((a, b) => a.distanciaVal - b.distanciaVal);
 
@@ -95,7 +100,6 @@ export default function Index() {
 
   useEffect(() => {
     cargarDatos();
-    // 👇 FORZAMOS EL REGISTRO DEL TOKEN AL ENTRAR A LA PANTALLA PRINCIPAL 👇
     registrarParaNotificacionesPush();
   }, []);
 
@@ -115,8 +119,10 @@ export default function Index() {
     }, []),
   );
 
-  const puntosFiltrados = puntos.filter((p) =>
-    p.nombre.toLowerCase().includes(busqueda.toLowerCase()),
+  const puntosFiltrados = puntos.filter(
+    (p) =>
+      p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      p.tipo.toLowerCase().includes(busqueda.toLowerCase()),
   );
 
   const irAlMapa = (punto: PuntoConDistancia) => {
@@ -160,7 +166,6 @@ export default function Index() {
     );
   };
 
-  // 👇 DECLARAMOS EL ID DEL ANUNCIO AQUÍ, JUSTO ANTES DEL RETURN 👇
   const adUnitId = __DEV__
     ? TestIds.BANNER
     : "ca-app-pub-5334815455665872/6664516582";
@@ -170,7 +175,9 @@ export default function Index() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>¡Hola, {nombreUsuario}! 👋</Text>
-          <Text style={styles.appName}>PUNTO SEGURO</Text>
+          <Text style={[styles.appName, { color: "#0B3B70" }]}>
+            PUNTO SEGURO
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -203,13 +210,69 @@ export default function Index() {
         />
       </View>
 
+      <View style={{ paddingHorizontal: 16, marginVertical: 12 }}>
+        <Text
+          style={{
+            fontSize: 18,
+            fontWeight: "700",
+            color: "#0B3B70",
+            marginBottom: 12,
+          }}
+        >
+          ¿Qué necesitas?
+        </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+          }}
+        >
+          {CATEGORIAS_OFICIALES.map((cat) => (
+            <TouchableOpacity
+              key={cat.id}
+              style={{
+                width: "30%",
+                backgroundColor: "#FFFFFF",
+                borderRadius: 12,
+                padding: 10,
+                alignItems: "center",
+                marginBottom: 12,
+                shadowColor: "#000",
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+              onPress={() => setBusqueda(cat.id)}
+            >
+              <Image
+                source={cat.icon}
+                style={{ width: 40, height: 40, resizeMode: "contain" }}
+              />
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "600",
+                  color: "#0B3B70",
+                  textAlign: "center",
+                  marginTop: 6,
+                }}
+                numberOfLines={2}
+              >
+                {cat.nombreCorto}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       <View style={styles.listContainer}>
         <Text style={styles.sectionTitle}>Puntos Cercanos a tu Ubicación</Text>
 
         {cargando ? (
           <ActivityIndicator
             size="small"
-            color="#007AFF"
+            color="#1677D2"
             style={{ marginTop: 20 }}
           />
         ) : (
@@ -239,9 +302,9 @@ export default function Index() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>{item.nombre}</Text>
-                    {/* 👇 SE CORRIGIÓ EL SALTO DE LÍNEA EXTRAÑO AQUÍ 👇 */}
+
                     <Text style={styles.itemSubtitle}>
-                      📍 a {item.distanciaText} - {item.estado || item.tipo}
+                      a {item.distanciaText} - {item.estado || item.tipo}
                     </Text>
                   </View>
 
@@ -264,7 +327,9 @@ export default function Index() {
                         <Text style={{ fontSize: 16 }}>🗑️</Text>
                       </TouchableOpacity>
                     )}
-                    <View style={styles.navButton}>
+                    <View
+                      style={[styles.navButton, { backgroundColor: "#1677D2" }]}
+                    >
                       <Text
                         style={{
                           color: "#FFF",
@@ -283,14 +348,13 @@ export default function Index() {
         )}
       </View>
 
-      {/* 👇 BANNER DE ADMOB FIJADO EN LA PARTE INFERIOR 👇 */}
       <View
         style={{
           alignItems: "center",
           width: "100%",
           paddingTop: 5,
           paddingBottom: 10,
-          backgroundColor: "#F8FAFC",
+          backgroundColor: "#F1F5F9",
         }}
       >
         <BannerAd

@@ -1,55 +1,55 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+import "@/global.css";
 
-import '@/global.css';
-
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    primary: "#1677D2", // Azul principal
+    deepPrimary: "#0B3B70", // Azul profundo
+    skyBlue: "#43A5FF", // Azul cielo
+    text: "#0F172A", // Texto principal
+    textSecondary: "#64748B", // Gris neutro oficial
+    background: "#F1F5F9", // Fondo claro oficial
+    cardBackground: "#FFFFFF", // Blanco oficial
+    backgroundElement: "#E2E8F0",
+    backgroundSelected: "#DBEAFE",
+    border: "#CBD5E1",
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    primary: "#43A5FF", // Azul cielo (resalta sobre fondo oscuro)
+    deepPrimary: "#0B3B70", // Azul profundo
+    skyBlue: "#1677D2", // Azul principal
+    text: "#FFFFFF", // Texto blanco
+    textSecondary: "#94A3B8", // Gris neutro adaptado para contraste oscuro
+    background: "#0F172A", // Fondo azul/gris muy oscuro
+    cardBackground: "#1E293B", // Tarjetas en modo oscuro
+    backgroundElement: "#334155",
+    backgroundSelected: "#1E3A8A",
+    border: "#334155",
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
   default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+    sans: "normal",
+    serif: "serif",
+    rounded: "normal",
+    mono: "monospace",
   },
   web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+    sans: "var(--font-display)",
+    serif: "var(--font-serif)",
+    rounded: "var(--font-rounded)",
+    mono: "var(--font-mono)",
   },
-});
+}) ?? {
+  sans: "normal",
+  serif: "serif",
+  rounded: "normal",
+  mono: "monospace",
+};
 
 export const Spacing = {
   half: 2,
@@ -61,5 +61,5 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+export const BottomTabInset = 80; // Inset ajustado para Android
 export const MaxContentWidth = 800;

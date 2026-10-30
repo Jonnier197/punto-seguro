@@ -1,9 +1,8 @@
-import { Tabs, useRouter, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
-
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../config/firebase';
+import { Tabs, useRouter, useSegments } from "expo-router";
+import { User, onAuthStateChanged } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
+import { auth } from "../../config/firebase";
 
 export default function Layout() {
   const [user, setUser] = useState<User | null>(null);
@@ -23,20 +22,36 @@ export default function Layout() {
   useEffect(() => {
     if (initializing) return;
 
-    const inAuthGroup = segments[0] === 'auth';
+    const inAuthGroup = segments[0] === "auth";
 
     if (!user && !inAuthGroup) {
-      router.replace('/auth');
+      router.replace("/auth");
     } else if (user && inAuthGroup) {
-      router.replace('/');
+      router.replace("/");
     }
   }, [user, initializing, segments]);
 
   if (initializing) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F172A' }}>
-        <ActivityIndicator size="large" color="#EF4444" />
-        <Text style={{ marginTop: 15, color: '#FFFFFF', fontSize: 16 }}>Cargando...</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#F1F5F9",
+        }}
+      >
+        <ActivityIndicator size="large" color="#1677D2" />
+        <Text
+          style={{
+            marginTop: 15,
+            color: "#0B3B70",
+            fontSize: 16,
+            fontWeight: "bold",
+          }}
+        >
+          Cargando Punto Seguro...
+        </Text>
       </View>
     );
   }
@@ -45,23 +60,62 @@ export default function Layout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#EF4444',
-        tabBarInactiveTintColor: '#94A3B8',
-        tabBarStyle: { backgroundColor: '#1E293B', borderTopColor: '#334155' },
+        tabBarActiveTintColor: "#1677D2",
+        tabBarInactiveTintColor: "#64748B",
+        tabBarStyle: {
+          backgroundColor: "#FFFFFF",
+          borderTopColor: "#E2E8F0",
+          height: 60,
+          paddingBottom: 8,
+        },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Inicio', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text> }} />
-      <Tabs.Screen name="mapa" options={{ title: 'Mapa', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text> }} />
-      <Tabs.Screen name="proponer" options={{ title: 'Proponer', tabBarIcon: () => <Text style={{ fontSize: 20 }}>➕</Text> }} />
-      
-      {/* 👇 AQUÍ ESTÁ LA NUEVA PESTAÑA DE ALERTAS (El 4to Ícono) 👇 */}
-      <Tabs.Screen name="alertas" options={{ title: 'Alertas', tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚠️</Text> }} />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Inicio",
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="mapa"
+        options={{
+          title: "Mapa",
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="proponer"
+        options={{
+          title: "Proponer",
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>➕</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="alertas"
+        options={{
+          title: "Alertas",
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚠️</Text>,
+        }}
+      />
 
-      {/* PANTALLAS OCULTAS DE LA BARRA INFERIOR */}
-      <Tabs.Screen name="perfil" options={{ href: null }} />
-      <Tabs.Screen name="auth" options={{ href: null }} />
-      <Tabs.Screen name="admin" options={{ href: null }} />
-      <Tabs.Screen name="mis-puntos" options={{ href: null }} />
+      {/* PANTALLAS OCULTAS LIMPIAS (Cero funciones vacías que maten la app) */}
+      <Tabs.Screen
+        name="perfil"
+        options={{ tabBarItemStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="auth"
+        options={{ tabBarItemStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{ tabBarItemStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="mis-puntos"
+        options={{ tabBarItemStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

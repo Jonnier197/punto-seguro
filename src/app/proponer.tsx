@@ -1,7 +1,7 @@
-import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import * as Location from "expo-location";
+import { useRouter } from "expo-router";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,13 +14,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import { WebView } from 'react-native-webview';
-import { enviarNotificacionPush } from '../services/notificationService';
+  View,
+} from "react-native";
+import { WebView } from "react-native-webview";
 
-import { auth, db } from '../../config/firebase'; // Asegúrate de tener db importado aquí
-import { proponerPuntoSeguro } from '../services/puntosService';
+import { auth, db } from "../../config/firebase";
+import { enviarNotificacionPush } from "../services/notificationService";
+import { proponerPuntoSeguro } from "../services/puntosService";
 
 // 👇 LISTA DE OPCIONES PREDEFINIDAS 👇
 const TIPOS_AYUDA = [
@@ -29,42 +29,77 @@ const TIPOS_AYUDA = [
   "Bomberos / Centro de Emergencias",
   "Punto de Agua Potable y Víveres",
   "Hospital / Urgencias Médicas",
-  "Policía / Seguridad"
+  "Policía / Seguridad",
 ];
 
 export default function ProponerPuntoScreen() {
   const router = useRouter();
-  
-  const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState(''); // Se llenará con las opciones de TIPOS_AYUDA
-  const [direccion, setDireccion] = useState('');
-  const [telefono, setTelefono] = useState('');
-  
-  const [latitud, setLatitud] = useState(3.5394); 
+
+  const [nombre, setNombre] = useState("");
+  const [tipo, setTipo] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [telefono, setTelefono] = useState("");
+
+  const [latitud, setLatitud] = useState(3.5394);
   const [longitud, setLongitud] = useState(-76.3036);
-  
+
   const [loading, setLoading] = useState(false);
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false); // 👈 Nuevo estado de búsqueda
   const [mapaListo, setMapaListo] = useState(false);
-  
+
   const [mostrarMapa, setMostrarMapa] = useState(false);
-  const [mostrarTipos, setMostrarTipos] = useState(false); // 👈 Controla el menú desplegable
+  const [mostrarTipos, setMostrarTipos] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
+        if (status === "granted") {
           const location = await Location.getCurrentPositionAsync({});
           setLatitud(location.coords.latitude);
           setLongitud(location.coords.longitude);
         }
       } catch (error) {
-        console.log('No se pudo obtener la ubicación exacta, usando predeterminada.');
+        console.log(
+          "No se pudo obtener la ubicación exacta, usando predeterminada.",
+        );
       } finally {
         setMapaListo(true);
       }
     })();
   }, []);
+
+  // 👇 NUEVA FUNCIÓN: GEOCODIFICACIÓN DE DIRECCIÓN 👇
+  const buscarDireccionEnMapa = async () => {
+    if (!direccion.trim()) {
+      Alert.alert("Atención", "Por favor, escribe una dirección primero.");
+      return;
+    }
+
+    try {
+      setBuscandoUbicacion(true);
+      const resultados = await Location.geocodeAsync(direccion);
+
+      if (resultados.length > 0) {
+        const { latitude, longitude } = resultados[0];
+        setLatitud(latitude);
+        setLongitud(longitude);
+
+        // Se abre automáticamente el mapa para que el usuario confirme si el pin cayó bien
+        setMostrarMapa(true);
+      } else {
+        Alert.alert(
+          "Sin resultados",
+          "No pudimos encontrar esa dirección exacta.",
+        );
+      }
+    } catch (error) {
+      console.log("Error de geocodificación:", error);
+      Alert.alert("Error", "Hubo un problema procesando la dirección.");
+    } finally {
+      setBuscandoUbicacion(false);
+    }
+  };
 
   const leafletHTML = `
     <!DOCTYPE html>
@@ -81,7 +116,7 @@ export default function ProponerPuntoScreen() {
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map').setView([${latitud}, ${longitud}], 15);
+        var map = L.map('map').setView([${latitud}, ${longitud}], 16);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '© OpenStreetMap'
@@ -109,23 +144,25 @@ export default function ProponerPuntoScreen() {
         setLongitud(data.lng);
       }
     } catch (error) {
-      console.log('Error parseando coordenadas del mapa:', error);
+      console.log("Error parseando coordenadas del mapa:", error);
     }
   };
 
-  // Función para notificar a los administradores
   const notificarAdministradores = async (nombreLugar: string) => {
     try {
-      const adminsQuery = query(collection(db, 'users'), where('rol', '==', 'admin'));
+      const adminsQuery = query(
+        collection(db, "users"),
+        where("rol", "==", "admin"),
+      );
       const querySnapshot = await getDocs(adminsQuery);
-      
+
       const envios = querySnapshot.docs.map(async (documento) => {
         const adminData = documento.data();
         if (adminData.expoPushToken) {
           await enviarNotificacionPush(
             adminData.expoPushToken,
             "🔔 Nueva Propuesta Pendiente",
-            `El usuario ha sugerido el punto "${nombreLugar}". Entra al panel para revisarlo.`
+            `El usuario ha sugerido el punto "${nombreLugar}". Entra al panel para revisarlo.`,
           );
         }
       });
@@ -138,44 +175,48 @@ export default function ProponerPuntoScreen() {
 
   const handleSubmit = async () => {
     if (!nombre || !tipo || !direccion) {
-      Alert.alert('Campos incompletos', 'Por favor llena todos los campos obligatorios (Nombre, Tipo y Dirección).');
+      Alert.alert(
+        "Campos incompletos",
+        "Por favor llena todos los campos obligatorios (Nombre, Tipo y Dirección).",
+      );
       return;
     }
 
     setLoading(true);
     try {
       const uidActual = auth.currentUser?.uid;
-      const emailActual = auth.currentUser?.email || 'Usuario desconocido';
+      const emailActual = auth.currentUser?.email || "Usuario desconocido";
 
       await proponerPuntoSeguro({
         nombre: nombre.trim(),
         tipo,
         direccion: direccion.trim(),
-        telefono: telefono.trim() || 'No especificado',
+        telefono: telefono.trim() || "No especificado",
         latitud,
         longitud,
         creadoPor: emailActual,
-        idUsuarioCreador: uidActual || emailActual
+        idUsuarioCreador: uidActual || emailActual,
       });
 
-      // Disparamos la notificación a los administradores al proponer con éxito
       await notificarAdministradores(nombre.trim());
-      
-      setNombre('');
-      setTipo('');
-      setDireccion('');
-      setTelefono('');
-      
+
+      setNombre("");
+      setTipo("");
+      setDireccion("");
+      setTelefono("");
+
       Alert.alert(
-        '¡Gracias por tu aporte!', 
-        'El punto seguro ha sido enviado y está en revisión por un administrador.', 
-        [{ 
-          text: 'Entendido', 
-          onPress: () => router.navigate('/')
-        }]
+        "¡Gracias por tu aporte!",
+        "El punto seguro ha sido enviado y está en revisión por un administrador.",
+        [
+          {
+            text: "Entendido",
+            onPress: () => router.navigate("/"),
+          },
+        ],
       );
     } catch (error) {
-      Alert.alert('Error', 'No se pudo enviar la propuesta del punto seguro.');
+      Alert.alert("Error", "No se pudo enviar la propuesta del punto seguro.");
     } finally {
       setLoading(false);
     }
@@ -183,90 +224,173 @@ export default function ProponerPuntoScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scrollContent} nestedScrollEnabled={true}>
-          
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          nestedScrollEnabled={true}
+        >
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Proponer Punto Seguro</Text>
           </View>
 
           <Text style={styles.description}>
-            Ayuda a la comunidad agregando un nuevo lugar de ayuda. Un administrador revisará la propuesta.
+            Ayuda a la comunidad agregando un nuevo lugar. Un administrador
+            revisará la propuesta.
           </Text>
 
           <View style={styles.formCard}>
             <Text style={styles.label}>Nombre del lugar *</Text>
-            <TextInput style={styles.input} placeholder="Ej. Estación de Bomberos Sur" value={nombre} onChangeText={setNombre} />
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. Estación de Bomberos Sur"
+              value={nombre}
+              onChangeText={setNombre}
+            />
 
             <Text style={styles.label}>Tipo de ayuda *</Text>
-            <TouchableOpacity 
-              style={[styles.input, { justifyContent: 'center' }]} 
+            <TouchableOpacity
+              style={[styles.input, { justifyContent: "center" }]}
               activeOpacity={0.7}
               onPress={() => setMostrarTipos(true)}
             >
-              <Text style={{ color: tipo ? '#1E293B' : '#94A3B8', fontSize: 15 }}>
-                {tipo || 'Selecciona una opción...'}
+              <Text
+                style={{ color: tipo ? "#0F172A" : "#94A3B8", fontSize: 15 }}
+              >
+                {tipo || "Selecciona una opción..."}
               </Text>
             </TouchableOpacity>
 
             <Text style={styles.label}>Dirección *</Text>
-            <TextInput style={styles.input} placeholder="Ej. Calle 10 # 5-20" value={direccion} onChangeText={setDireccion} />
+
+            {/* 👇 NUEVO CAMPO DE DIRECCIÓN CON BOTÓN DE BÚSQUEDA INTEGRADO 👇 */}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Ej. Carrera 19 #18-68"
+                value={direccion}
+                onChangeText={setDireccion}
+              />
+              <TouchableOpacity
+                style={styles.searchLocationButton}
+                onPress={buscarDireccionEnMapa}
+                disabled={buscandoUbicacion}
+              >
+                {buscandoUbicacion ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={{ color: "#FFF", fontWeight: "bold" }}>
+                    🔍 Ubicar
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.label}>Teléfono (Opcional)</Text>
-            <TextInput style={styles.input} placeholder="Ej. 602 1234567" keyboardType="phone-pad" value={telefono} onChangeText={setTelefono} />
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. 602 1234567"
+              keyboardType="phone-pad"
+              value={telefono}
+              onChangeText={setTelefono}
+            />
 
             <View style={styles.divider} />
 
-            <Text style={styles.label}>Ubicación *</Text>
-            
-            <TouchableOpacity 
-              style={styles.openMapButton} 
+            <Text style={styles.label}>Ubicación Precisa *</Text>
+
+            <TouchableOpacity
+              style={styles.openMapButton}
               onPress={() => setMostrarMapa(true)}
             >
-              <Text style={styles.openMapButtonText}>📍 Ubicar en mapa</Text>
+              <Text style={styles.openMapButtonText}>
+                📍 Ajustar pin en el mapa manualmente
+              </Text>
             </TouchableOpacity>
-            
+
             <Text style={styles.coordinatesText}>
               Coordenadas actuales: {latitud.toFixed(4)}, {longitud.toFixed(4)}
             </Text>
 
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
-              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitButtonText}>Enviar Propuesta</Text>}
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.submitButtonText}>Enviar Propuesta</Text>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* 👇 MODAL DEL MAPA 👇 */}
-      <Modal visible={mostrarMapa} animationType="slide" transparent={false} onRequestClose={() => setMostrarMapa(false)}>
+      <Modal
+        visible={mostrarMapa}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setMostrarMapa(false)}
+      >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Toca para fijar el punto</Text>
           </View>
           <View style={styles.modalMapWrapper}>
             {!mapaListo ? (
-              <ActivityIndicator size="large" color="#EF4444" style={{ marginTop: 50 }} />
+              <ActivityIndicator
+                size="large"
+                color="#1677D2"
+                style={{ marginTop: 50 }}
+              />
             ) : (
-              <WebView source={{ html: leafletHTML }} style={{ flex: 1 }} onMessage={handleMapMessage} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} />
+              <WebView
+                key={`${latitud}-${longitud}`} // Forzar refresco si las props cambian por geocodificación
+                source={{ html: leafletHTML }}
+                style={{ flex: 1 }}
+                onMessage={handleMapMessage}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              />
             )}
           </View>
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.confirmMapButton} onPress={() => setMostrarMapa(false)}>
-              <Text style={styles.confirmMapButtonText}>✅ Confirmar Ubicación</Text>
+            <TouchableOpacity
+              style={styles.confirmMapButton}
+              onPress={() => setMostrarMapa(false)}
+            >
+              <Text style={styles.confirmMapButtonText}>
+                ✅ Confirmar Ubicación
+              </Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
 
       {/* 👇 MODAL PARA SELECCIONAR EL TIPO DE AYUDA 👇 */}
-      <Modal visible={mostrarTipos} animationType="fade" transparent={true} onRequestClose={() => setMostrarTipos(false)}>
-        <TouchableOpacity style={styles.dropdownOverlay} activeOpacity={1} onPressOut={() => setMostrarTipos(false)}>
+      <Modal
+        visible={mostrarTipos}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setMostrarTipos(false)}
+      >
+        <TouchableOpacity
+          style={styles.dropdownOverlay}
+          activeOpacity={1}
+          onPressOut={() => setMostrarTipos(false)}
+        >
           <View style={styles.dropdownContainer}>
-            <Text style={styles.dropdownTitle}>Selecciona el tipo de ayuda</Text>
+            <Text style={styles.dropdownTitle}>
+              Selecciona el tipo de ayuda
+            </Text>
             {TIPOS_AYUDA.map((opcion, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.dropdownOption} 
+              <TouchableOpacity
+                key={index}
+                style={styles.dropdownOption}
                 onPress={() => {
                   setTipo(opcion);
                   setMostrarTipos(false);
@@ -278,40 +402,147 @@ export default function ProponerPuntoScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: "#F1F5F9" }, // 👈 Fondo azulado
   scrollContent: { padding: 20, paddingBottom: 40 },
   header: { marginBottom: 15, marginTop: 10 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#1E293B', textAlign: 'center' },
-  description: { fontSize: 14, color: '#64748B', marginBottom: 20, lineHeight: 20, textAlign: 'center' },
-  formCard: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
-  label: { fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6, marginTop: 12 },
-  input: { backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 15, height: 48, fontSize: 15, color: '#1E293B', borderWidth: 1, borderColor: '#E2E8F0' },
-  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 20 },
-  openMapButton: { backgroundColor: '#EFF6FF', paddingVertical: 14, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: '#BFDBFE', marginBottom: 8 },
-  openMapButtonText: { color: '#2563EB', fontWeight: 'bold', fontSize: 15 },
-  coordinatesText: { fontSize: 12, color: '#94A3B8', textAlign: 'center', marginBottom: 10 },
-  submitButton: { backgroundColor: '#EF4444', paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginTop: 15 },
-  submitButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
-  
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#0B3B70",
+    textAlign: "center",
+  }, // 👈 Azul profundo
+  description: {
+    fontSize: 14,
+    color: "#64748B",
+    marginBottom: 20,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  formCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#0B3B70",
+    marginBottom: 6,
+    marginTop: 12,
+  },
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    height: 48,
+    fontSize: 15,
+    color: "#0F172A",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+  },
+  divider: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 20 },
+
+  // Estilo del nuevo botón buscar
+  searchLocationButton: {
+    backgroundColor: "#1677D2",
+    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+  },
+
+  openMapButton: {
+    backgroundColor: "#DBEAFE",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#93C5FD",
+    marginBottom: 8,
+  },
+  openMapButtonText: { color: "#1E3A8A", fontWeight: "bold", fontSize: 15 },
+  coordinatesText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+
+  // 👈 CORRECCIÓN AL AZUL OFICIAL EN LUGAR DE ROJO 👇
+  submitButton: {
+    backgroundColor: "#1677D2",
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 15,
+  },
+  submitButtonText: { color: "#FFFFFF", fontWeight: "bold", fontSize: 16 },
+
   // Estilos del Modal del Mapa
-  modalContainer: { flex: 1, backgroundColor: '#F8FAFC' },
-  modalHeader: { padding: 20, backgroundColor: '#FFFFFF', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
+  modalContainer: { flex: 1, backgroundColor: "#F1F5F9" },
+  modalHeader: {
+    padding: 20,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  modalTitle: { fontSize: 18, fontWeight: "bold", color: "#0B3B70" },
   modalMapWrapper: { flex: 1 },
-  modalFooter: { padding: 20, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E2E8F0' },
-  confirmMapButton: { backgroundColor: '#10B981', paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
-  confirmMapButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
+  modalFooter: {
+    padding: 20,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  confirmMapButton: {
+    backgroundColor: "#1677D2",
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: "center",
+  }, // 👈 Azul oficial
+  confirmMapButtonText: { color: "#FFFFFF", fontWeight: "bold", fontSize: 16 },
 
   // Estilos del Modal de Tipos de Ayuda
-  dropdownOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  dropdownContainer: { backgroundColor: '#FFFFFF', width: '100%', borderRadius: 16, padding: 20, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 10 },
-  dropdownTitle: { fontSize: 16, fontWeight: 'bold', color: '#1E293B', marginBottom: 15, textAlign: 'center' },
-  dropdownOption: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  dropdownOptionText: { fontSize: 16, color: '#334155', textAlign: 'center' }
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(11, 59, 112, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  dropdownContainer: {
+    backgroundColor: "#FFFFFF",
+    width: "100%",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  dropdownTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#0B3B70",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  dropdownOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  dropdownOptionText: { fontSize: 16, color: "#0F172A", textAlign: "center" },
 });
