@@ -8,14 +8,13 @@ import {
   FlatList,
   Image,
   LogBox,
-  SafeAreaView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-//IMPORTAMOS ADMOB
 import {
   BannerAd,
   BannerAdSize,
