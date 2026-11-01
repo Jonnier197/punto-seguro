@@ -48,10 +48,21 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* PANTALLAS OCULTAS */}
-      <Tabs.Screen name="perfil" options={{ href: null }} />
-      <Tabs.Screen name="admin" options={{ href: null }} />
-      <Tabs.Screen name="mis-puntos" options={{ href: null }} />
+      {/* PANTALLAS OCULTAS: se navega a ellas con router.push, pero no
+          aparecen en la barra. No usar href: null, porque eso las vuelve
+          inaccesibles. */}
+      <Tabs.Screen
+        name="perfil"
+        options={{ tabBarItemStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{ tabBarItemStyle: { display: "none" } }}
+      />
+      <Tabs.Screen
+        name="mis-puntos"
+        options={{ tabBarItemStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }

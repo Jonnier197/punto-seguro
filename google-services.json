@@ -14,11 +14,19 @@
       },
       "oauth_client": [
         {
+          "client_id": "159913418409-drj53bfv2jf67hdrehq9cam50sn828jm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jonnier197.puntoseguro",
+            "certificate_hash": "5e9fdf7726b4fe171549f932493aaa40a62b5346"
+          }
+        },
+        {
           "client_id": "159913418409-l39413mpkl1k0a6mr8qi7h1vsif99u4r.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.jonnier197.puntoseguro",
-            "certificate_hash": "26:01:d5:47:30:2e:23:76:bf:f8:79:d9:79:d2:6a:08:ed:38:82:76"
+            "certificate_hash": "2601d547302e2376bff879d979d26a08ed388276"
           }
         },
         {
