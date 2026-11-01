@@ -6,8 +6,12 @@ export interface CampoConfig {
   placeholder?: string;
   keyboardType?: "default" | "numeric" | "phone-pad" | "email-address";
   autoCapitalize?: "none" | "words" | "sentences";
-  type?: "text" | "date";
+  type?: "text" | "date" | "select";
+  opciones?: string[]; // solo para type "select"
+  obligatorio?: boolean;
 }
+
+export const TIPOS_SANGRE = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
 
 export interface SeccionConfig {
   id: string;
@@ -26,9 +30,20 @@ export const SECCIONES_PERFIL: SeccionConfig[] = [
         label: "Fecha de nacimiento",
         type: "date",
         placeholder: "Seleccionar fecha",
+        obligatorio: true,
       },
-      { key: "documento", label: "Documento", keyboardType: "numeric" },
-      { key: "telefono", label: "Teléfono", keyboardType: "phone-pad" },
+      {
+        key: "documento",
+        label: "Documento",
+        keyboardType: "numeric",
+        obligatorio: true,
+      },
+      {
+        key: "telefono",
+        label: "Teléfono",
+        keyboardType: "phone-pad",
+        obligatorio: true,
+      },
     ],
   },
   {
@@ -39,11 +54,13 @@ export const SECCIONES_PERFIL: SeccionConfig[] = [
         key: "contactoEmergencia",
         label: "Familiar de contacto",
         autoCapitalize: "words",
+        obligatorio: true,
       },
       {
         key: "telefonoEmergencia",
         label: "Línea directa",
         keyboardType: "phone-pad",
+        obligatorio: true,
       },
     ],
   },
@@ -51,7 +68,13 @@ export const SECCIONES_PERFIL: SeccionConfig[] = [
     id: "medica",
     titulo: "⚠️ Información Médica Clave",
     campos: [
-      { key: "tipoSangre", label: "Tipo de sangre", placeholder: "Ej. O+" },
+      {
+        key: "tipoSangre",
+        label: "Tipo de sangre",
+        type: "select",
+        opciones: TIPOS_SANGRE,
+        obligatorio: true,
+      },
       { key: "alergias", label: "Alergias", placeholder: "Ej. Penicilina" },
       {
         key: "condiciones",

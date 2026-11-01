@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../config/firebase";
 
 export interface UserData {
@@ -39,7 +39,7 @@ export async function getNombreUsuario(): Promise<string> {
 
 /**
  * Actualiza los datos del usuario actual en Firestore.
- * Solo actualiza los campos enviados (merge).
+ * Solo actualiza los campos enviados (merge) y crea el documento si no existe.
  */
 export async function actualizarPerfilUsuario(
   cambios: Partial<UserData>,
@@ -47,8 +47,31 @@ export async function actualizarPerfilUsuario(
   const user = auth.currentUser;
   if (!user) throw new Error("No hay usuario autenticado");
 
+  // setDoc con merge: crea el documento si el usuario aún no tiene uno
+  // (usuarios nuevos de Google) y si existe solo cambia los campos enviados.
   const ref = doc(db, "users", user.uid);
-  await updateDoc(ref, cambios);
+  await setDoc(ref, cambios, { merge: true });
+}
+
+/** Campos que el usuario debe llenar antes de poder usar la app. */
+export const CAMPOS_OBLIGATORIOS: (keyof UserData)[] = [
+  "tipoSangre",
+  "fechaNacimiento",
+  "documento",
+  "telefono",
+  "contactoEmergencia",
+  "telefonoEmergencia",
+];
+
+const VALORES_VACIOS = ["", "No especificado", "No especificada"];
+
+export function tieneValor(valor: unknown): boolean {
+  return typeof valor === "string" && !VALORES_VACIOS.includes(valor.trim());
+}
+
+export function esPerfilCompleto(data: UserData | null): boolean {
+  if (!data) return false;
+  return CAMPOS_OBLIGATORIOS.every((campo) => tieneValor(data[campo]));
 }
 
 /**

@@ -49,9 +49,8 @@ export default function PerfilScreen() {
           if (isActive) {
             setUserData(
               data || {
-                nombre: auth.currentUser?.email?.split("@")[0] || "Usuario",
+                nombre: auth.currentUser?.displayName || "",
                 email: auth.currentUser?.email || "",
-                tipoSangre: "O+",
               },
             );
           }
@@ -201,7 +200,7 @@ export default function PerfilScreen() {
               <View style={[styles.bloodBadge, { flex: 1 }]}>
                 <Text style={styles.bloodTitle}>🩸 TIPO DE SANGRE</Text>
                 <Text style={styles.bloodType}>
-                  {userData?.tipoSangre || "O+"}
+                  {userData?.tipoSangre || ""}
                 </Text>
               </View>
               <View

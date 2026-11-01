@@ -8,7 +8,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -16,7 +15,7 @@ import {
 import { UserData } from '../../services/userService';
 import { CampoConfig } from '../config/perfilSections';
 import { COLORS } from '../theme/colors';
-import DateField from './DateField';
+import CampoPerfil from './CampoPerfil';
 
 interface Props {
   visible: boolean;
@@ -104,31 +103,15 @@ export default function EditSectionModal({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {campos.map((campo) =>
-              campo.type === 'date' ? (
-                <DateField
-                  key={campo.key}
-                  label={campo.label}
-                  value={(form[campo.key] as string) || ''}
-                  onChange={(value) => handleChange(campo.key, value)}
-                  disabled={saving}
-                />
-              ) : (
-                <View key={campo.key} style={styles.fieldContainer}>
-                  <Text style={styles.fieldLabel}>{campo.label}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={(form[campo.key] as string) || ''}
-                    onChangeText={(t) => handleChange(campo.key, t)}
-                    placeholder={campo.placeholder || ''}
-                    placeholderTextColor={COLORS.textLight}
-                    keyboardType={campo.keyboardType || 'default'}
-                    autoCapitalize={campo.autoCapitalize || 'sentences'}
-                    editable={!saving}
-                  />
-                </View>
-              )
-            )}
+            {campos.map((campo) => (
+              <CampoPerfil
+                key={campo.key}
+                campo={campo}
+                value={(form[campo.key] as string) || ''}
+                onChange={(value) => handleChange(campo.key, value)}
+                disabled={saving}
+              />
+            ))}
           </ScrollView>
 
           {/* Botón guardar */}
@@ -186,23 +169,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closeIcon: { fontSize: 20, color: COLORS.textSecondary, padding: 4 },
-  fieldContainer: { marginBottom: 14 },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
   saveButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 14,

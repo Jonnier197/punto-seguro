@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -52,7 +51,7 @@ export default function Index() {
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
 
-  const [nombreUsuario, setNombreUsuario] = useState("Usuario");
+  const [nombreUsuario, setNombreUsuario] = useState("");
   const [usuarioActual, setUsuarioActual] = useState<UserData | null>(null);
 
   const cargarDatos = async (esRefresco = false) => {
@@ -106,15 +105,13 @@ export default function Index() {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const nombre = await AsyncStorage.getItem("nombreUsuario");
-        if (nombre) {
-          setNombreUsuario(nombre.split(" ")[0]);
-        } else {
-          setNombreUsuario("Usuario");
-        }
-
         const perfil = await obtenerPerfilUsuario();
         setUsuarioActual(perfil);
+
+        // Primer nombre del perfil o, si no hay, el de la cuenta de Google
+        const nombre =
+          perfil?.nombre?.trim() || auth.currentUser?.displayName || "";
+        setNombreUsuario(nombre.split(" ")[0]);
       })();
     }, []),
   );
@@ -174,7 +171,9 @@ export default function Index() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>¡Hola, {nombreUsuario}! 👋</Text>
+          <Text style={styles.greeting}>
+            {nombreUsuario ? `¡Hola, ${nombreUsuario}! 👋` : "¡Hola! 👋"}
+          </Text>
           <Text style={[styles.appName, { color: "#0B3B70" }]}>
             PUNTO SEGURO
           </Text>
