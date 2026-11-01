@@ -11,8 +11,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { db } from '../../config/firebase';
-import { enviarNotificacionPush } from '../services/notificationService';
+import { db } from '../../../config/firebase';
+import { enviarNotificacionPush } from '../../services/notificationService';
 
 export default function AdminScreen() {
   const [propuestas, setPropuestas] = useState<any[]>([]);

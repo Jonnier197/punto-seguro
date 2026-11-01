@@ -11,9 +11,9 @@ import {
     View
 } from 'react-native';
 
-import { auth } from '../../config/firebase';
-import { eliminarPuntoSeguro, fetchMisPuntosPendientes } from '../services/puntosService';
-import { PuntoSeguro } from '../types';
+import { auth } from '../../../config/firebase';
+import { eliminarPuntoSeguro, fetchMisPuntosPendientes } from '../../services/puntosService';
+import { PuntoSeguro } from '../../types';
 
 export default function MisPuntosScreen() {
   const router = useRouter();

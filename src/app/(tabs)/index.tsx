@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   BannerAd,
@@ -21,20 +21,20 @@ import {
   TestIds,
 } from "react-native-google-mobile-ads";
 
-import { auth } from "../../config/firebase";
-import { registrarParaNotificacionesPush } from "../services/notificationService";
+import { auth } from "../../../config/firebase";
+import { registrarParaNotificacionesPush } from "../../services/notificationService";
 import {
   calcularDistancia,
   eliminarPuntoSeguro,
   fetchPuntosSeguros,
-} from "../services/puntosService";
-import { obtenerPerfilUsuario, UserData } from "../services/userService";
-import { styles } from "../styles/indexStyles";
-import { PuntoSeguro } from "../types";
-import { getEmojiTipo } from "../utils/emojis";
+} from "../../services/puntosService";
+import { obtenerPerfilUsuario, UserData } from "../../services/userService";
+import { styles } from "../../styles/indexStyles";
+import { PuntoSeguro } from "../../types";
+import { getEmojiTipo } from "../../utils/emojis";
 
 //IMPORTAMOS LA NUEVA CONFIGURACIÓN DE CATEGORÍAS
-import { CATEGORIAS_OFICIALES } from "../utils/categoryIcons";
+import { CATEGORIAS_OFICIALES } from "../../utils/categoryIcons";
 
 LogBox.ignoreAllLogs();
 
@@ -45,6 +45,7 @@ type PuntoConDistancia = PuntoSeguro & {
 
 export default function Index() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [busqueda, setBusqueda] = useState("");
   const [puntos, setPuntos] = useState<PuntoConDistancia[]>([]);
@@ -170,7 +171,7 @@ export default function Index() {
     : "ca-app-pub-5334815455665872/6664516582";
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>¡Hola, {nombreUsuario}! 👋</Text>
@@ -382,6 +383,6 @@ export default function Index() {
           }}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

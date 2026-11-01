@@ -1,15 +1,12 @@
-import { Tabs, useRouter, useSegments } from "expo-router";
+import { Stack } from "expo-router";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { auth } from "../../config/firebase";
 
-export default function Layout() {
+export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
-
-  const router = useRouter();
-  const segments = useSegments();
 
   useEffect(() => {
     const subscriber = onAuthStateChanged(auth, (userState) => {
@@ -18,18 +15,6 @@ export default function Layout() {
     });
     return subscriber;
   }, []);
-
-  useEffect(() => {
-    if (initializing) return;
-
-    const inAuthGroup = segments[0] === "auth";
-
-    if (!user && !inAuthGroup) {
-      router.replace("/auth");
-    } else if (user && inAuthGroup) {
-      router.replace("/");
-    }
-  }, [user, initializing, segments]);
 
   if (initializing) {
     return (
@@ -56,66 +41,20 @@ export default function Layout() {
     );
   }
 
-  return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: "#1677D2",
-        tabBarInactiveTintColor: "#64748B",
-        tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#E2E8F0",
-          height: 60,
-          paddingBottom: 8,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Inicio",
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="mapa"
-        options={{
-          title: "Mapa",
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="proponer"
-        options={{
-          title: "Proponer",
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>➕</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="alertas"
-        options={{
-          title: "Alertas",
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚠️</Text>,
-        }}
-      />
+  const isLoggedIn = !!user;
 
-      {/* PANTALLAS OCULTAS LIMPIAS (Cero funciones vacías que maten la app) */}
-      <Tabs.Screen
-        name="perfil"
-        options={{ tabBarItemStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
-        name="auth"
-        options={{ tabBarItemStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
-        name="admin"
-        options={{ tabBarItemStyle: { display: "none" } }}
-      />
-      <Tabs.Screen
-        name="mis-puntos"
-        options={{ tabBarItemStyle: { display: "none" } }}
-      />
-    </Tabs>
+  // Rutas protegidas: sin sesión solo existe "auth"; con sesión solo existen
+  // las pestañas. expo-router redirige solo, sin router.replace manual
+  // (eso causaba el bucle "Maximum update depth exceeded").
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={isLoggedIn}>
+        <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+
+      <Stack.Protected guard={!isLoggedIn}>
+        <Stack.Screen name="auth" />
+      </Stack.Protected>
+    </Stack>
   );
 }

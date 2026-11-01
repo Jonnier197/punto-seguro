@@ -17,10 +17,6 @@
       "package": "com.jonnier197.puntoseguro",
       "googleServicesFile": "./google-services.json"
     },
-    "androidNavigationBar": {
-      "barStyle": "dark-content",
-      "backgroundColor": "#FFFFFF"
-    },
     "plugins": [
       [
         "expo-location",

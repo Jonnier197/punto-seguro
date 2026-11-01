@@ -18,13 +18,13 @@ import { WebView } from "react-native-webview";
 import {
   AlertaDesastre,
   fetchAlertasGlobales,
-} from "../services/alertasService";
+} from "../../services/alertasService";
 import {
   PreferenciasAlertas,
   guardarPreferenciasAlertas,
   obtenerPreferenciasAlertas,
   registrarParaNotificacionesPush,
-} from "../services/notificationService";
+} from "../../services/notificationService";
 
 export default function AlertasScreen() {
   const [alertas, setAlertas] = useState<AlertaDesastre[]>([]);

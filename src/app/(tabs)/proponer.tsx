@@ -15,14 +15,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
-import { auth, db } from "../../config/firebase";
-import { enviarNotificacionPush } from "../services/notificationService";
-import { proponerPuntoSeguro } from "../services/puntosService";
+import { auth, db } from "../../../config/firebase";
+import { enviarNotificacionPush } from "../../services/notificationService";
+import { proponerPuntoSeguro } from "../../services/puntosService";
 
-// 👇 LISTA DE OPCIONES PREDEFINIDAS 👇
 const TIPOS_AYUDA = [
   "Centro de Acopio y Auxilio",
   "Refugio Temporal Comunitario",
@@ -34,6 +33,7 @@ const TIPOS_AYUDA = [
 
 export default function ProponerPuntoScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [nombre, setNombre] = useState("");
   const [tipo, setTipo] = useState("");
@@ -69,7 +69,6 @@ export default function ProponerPuntoScreen() {
     })();
   }, []);
 
-  // 👇 GEOCODIFICACIÓN DE DIRECCIÓN Y APERTURA AUTOMÁTICA DEL MAPA 👇
   const buscarDireccionEnMapa = async () => {
     if (!direccion.trim()) {
       Alert.alert("Atención", "Por favor, escribe una dirección primero.");
@@ -223,7 +222,12 @@ export default function ProponerPuntoScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -298,7 +302,6 @@ export default function ProponerPuntoScreen() {
 
             <View style={styles.divider} />
 
-            {/* SE ELIMINÓ EL BOTÓN REDUNDANTE DE AJUSTAR PIN MANUALMENTE */}
             <Text style={styles.coordinatesText}>
               Coordenadas seleccionadas: {latitud.toFixed(4)},{" "}
               {longitud.toFixed(4)}
@@ -319,14 +322,18 @@ export default function ProponerPuntoScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* 👇 MODAL DEL MAPA 👇 */}
       <Modal
         visible={mostrarMapa}
         animationType="slide"
         transparent={false}
         onRequestClose={() => setMostrarMapa(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <View
+          style={[
+            styles.modalContainer,
+            { paddingTop: insets.top, paddingBottom: insets.bottom },
+          ]}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               Toca el mapa para ajustar el pin
@@ -360,10 +367,9 @@ export default function ProponerPuntoScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
 
-      {/* 👇 MODAL PARA SELECCIONAR EL TIPO DE AYUDA 👇 */}
       <Modal
         visible={mostrarTipos}
         animationType="fade"
@@ -394,13 +400,13 @@ export default function ProponerPuntoScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F1F5F9" },
-  scrollContent: { padding: 20, paddingBottom: 40 },
+  scrollContent: { padding: 20, paddingBottom: 60 },
   header: { marginBottom: 15, marginTop: 10 },
   headerTitle: {
     fontSize: 24,

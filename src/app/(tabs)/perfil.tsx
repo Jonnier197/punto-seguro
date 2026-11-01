@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
@@ -7,29 +8,29 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../../config/firebase";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { auth } from "../../../config/firebase";
 
 import {
   SECCIONES_PERFIL,
   SeccionConfig,
-} from "../components/config/perfilSections";
-import EditSectionModal from "../components/perfil/EditSectionModal";
+} from "../../components/config/perfilSections";
+import EditSectionModal from "../../components/perfil/EditSectionModal";
 import SectionCard, {
   Divider,
   InfoRow,
-} from "../components/perfil/SectionCard";
+} from "../../components/perfil/SectionCard";
 import {
   UserData,
   actualizarPerfilUsuario,
   obtenerPerfilUsuario,
-} from "../services/userService";
+} from "../../services/userService";
 
 export default function PerfilScreen() {
   const router = useRouter();
@@ -78,7 +79,7 @@ export default function PerfilScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
@@ -99,8 +100,9 @@ export default function PerfilScreen() {
     try {
       await AsyncStorage.removeItem("nombreUsuario");
       setUserData(null);
+      await GoogleSignin.signOut().catch(() => {});
+      // _layout.tsx detecta el cierre de sesión y abre "auth" automáticamente
       await signOut(auth);
-      router.replace("/auth");
     } catch {
       Alert.alert("Error", "No se pudo cerrar sesión.");
     }
